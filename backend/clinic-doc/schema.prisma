@@ -1,0 +1,652 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+}
+
+// ==================== ENUMS ====================
+
+enum ClientGender {
+    MALE
+    FEMALE
+    OTHER
+}
+
+enum PaymentType {
+    INCOME
+    OUTCOME
+}
+
+enum RoomStatus {
+    AVAILABLE
+    OCCUPIED
+    MAINTENANCE
+    CLOSED
+}
+
+enum ServiceUserType {
+    FIXED
+    PERCENT
+}
+
+enum VisitStatus {
+    SCHEDULED
+    IN_PROGRESS
+    COMPLETED
+    CANCELLED
+    NO_SHOW
+    DONE
+}
+
+enum VisitRoomStatus {
+    ASSIGNED
+    IN_USE
+    COMPLETED
+}
+
+enum RecordStatus {
+    ACTIVE
+    INACTIVE
+    ARCHIVED
+}
+
+// ==================== MODELS ====================
+
+model User {
+    id          Int          @id @default(autoincrement())
+    role_id     Int?         @map("role_id")
+    full_name   String       @db.VarChar(100)
+    login       String       @db.VarChar(50)
+    password    String       @db.VarChar(255)
+    phone       String?      @db.VarChar(20)
+    email       String?      @db.VarChar(100)
+    description String?      @db.Text
+    status      RecordStatus @default(ACTIVE)
+    created_at  DateTime     @default(now())
+    updated_at  DateTime     @updatedAt
+    deleted_at  DateTime?
+
+    // Relations
+    role UserRole? @relation("fk_user_role", fields: [role_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+    // Audit relations - Modified
+    modified_clients           Client[]         @relation("fk_client_modified_by")
+    modified_visits            Visit[]          @relation("fk_visit_modified_by")
+    modified_payments          Payment[]        @relation("fk_payment_modified_by")
+    modified_client_paid       ClientPaid[]     @relation("fk_client_paid_modified_by")
+    modified_other_paid        OtherPaid[]      @relation("fk_other_paid_modified_by")
+    modified_visit_services    VisitService[]   @relation("fk_visit_service_modified_by")
+    modified_visit_rooms       VisitRoom[]      @relation("fk_visit_room_modified_by")
+    modified_visit_referrals   VisitReferral[]  @relation("fk_visit_referral_modified_by")
+    modified_service_users     ServiceUser[]    @relation("fk_service_user_modified_by")
+    modified_client_groups     ClientGroup[]    @relation("fk_client_group_modified_by")
+    modified_departments       Department[]     @relation("fk_department_modified_by")
+    modified_rooms             Room[]           @relation("fk_room_modified_by")
+    modified_services          Service[]        @relation("fk_service_modified_by")
+    modified_referrals         Referral[]       @relation("fk_referral_modified_by")
+    modified_sources           Source[]         @relation("fk_source_modified_by")
+    modified_loc_regions       LocRegion[]      @relation("fk_loc_region_modified_by")
+    modified_loc_districts     LocDistrict[]    @relation("fk_loc_district_modified_by")
+    modified_other_paid_groups OtherPaidGroup[] @relation("fk_other_paid_group_modified_by")
+
+    // Audit relations - Registered
+    registered_clients           Client[]         @relation("fk_client_registered_by")
+    registered_visits            Visit[]          @relation("fk_visit_registered_by")
+    registered_payments          Payment[]        @relation("fk_payment_registered_by")
+    registered_client_paid       ClientPaid[]     @relation("fk_client_paid_registered_by")
+    registered_other_paid        OtherPaid[]      @relation("fk_other_paid_registered_by")
+    registered_visit_services    VisitService[]   @relation("fk_visit_service_registered_by")
+    registered_visit_rooms       VisitRoom[]      @relation("fk_visit_room_registered_by")
+    registered_visit_referrals   VisitReferral[]  @relation("fk_visit_referral_registered_by")
+    registered_service_users     ServiceUser[]    @relation("fk_service_user_registered_by")
+    registered_client_groups     ClientGroup[]    @relation("fk_client_group_registered_by")
+    registered_departments       Department[]     @relation("fk_department_registered_by")
+    registered_rooms             Room[]           @relation("fk_room_registered_by")
+    registered_services          Service[]        @relation("fk_service_registered_by")
+    registered_referrals         Referral[]       @relation("fk_referral_registered_by")
+    registered_sources           Source[]         @relation("fk_source_registered_by")
+    registered_loc_regions       LocRegion[]      @relation("fk_loc_region_registered_by")
+    registered_loc_districts     LocDistrict[]    @relation("fk_loc_district_registered_by")
+    registered_other_paid_groups OtherPaidGroup[] @relation("fk_other_paid_group_registered_by")
+
+    // Business relations
+    doctor_visits Visit[]       @relation("fk_visit_doctor")
+    user_payments Payment[]     @relation("fk_payment_user")
+    service_users ServiceUser[] @relation("fk_service_user_user")
+
+    @@unique([login])
+    @@unique([email])
+    @@index([role_id])
+    @@index([login])
+    @@index([status])
+    @@index([created_at])
+    @@index([deleted_at])
+    @@map("users")
+}
+
+model UserRole {
+    id          Int          @id @default(autoincrement())
+    name        String       @db.VarChar(50)
+    description String?      @db.Text
+    permissions Json?        @db.JsonB
+    status      RecordStatus @default(ACTIVE)
+    created_at  DateTime     @default(now())
+    updated_at  DateTime     @updatedAt
+    deleted_at  DateTime?
+
+    users User[] @relation("fk_user_role")
+
+    @@index([status])
+    @@index([name])
+    @@map("user_roles")
+}
+
+model Client {
+    id            Int          @id @default(autoincrement())
+    full_name     String       @db.VarChar(100)
+    phone         String       @db.VarChar(20)
+    group_id      Int?         @map("group_id")
+    gender        ClientGender
+    date_of_birth DateTime?    @map("date_of_birth")
+    region_id     Int?         @map("region_id")
+    district_id   Int?         @map("district_id")
+    address       String?      @db.VarChar(255)
+    balance       Decimal      @default(0) @db.Decimal(15, 2)
+    description   String?      @db.Text
+    source_id     Int?         @map("source_id")
+    status        RecordStatus @default(ACTIVE)
+    created_at    DateTime     @default(now())
+    updated_at    DateTime     @updatedAt
+    deleted_at    DateTime?
+    registered_by Int?         @map("registered_by")
+    modified_by   Int?         @map("modified_by")
+
+    // Relations
+    group         ClientGroup? @relation("fk_client_group", fields: [group_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+    district      LocDistrict? @relation("fk_client_district", fields: [district_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+    region        LocRegion?   @relation("fk_client_region", fields: [region_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+    source        Source?      @relation("fk_client_source", fields: [source_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+    register_user User?        @relation("fk_client_registered_by", fields: [registered_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+    modify_user   User?        @relation("fk_client_modified_by", fields: [modified_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+    // Business relations
+    payments    Payment[]    @relation("fk_payment_client")
+    visits      Visit[]      @relation("fk_visit_client")
+    client_paid ClientPaid[] @relation("fk_client_paid_client")
+
+    @@index([group_id])
+    @@index([region_id])
+    @@index([district_id])
+    @@index([source_id])
+    @@index([status])
+    @@index([phone])
+    @@index([created_at])
+    @@index([deleted_at])
+    @@index([status, deleted_at])
+    @@index([phone, status])
+    @@map("clients")
+}
+
+model ClientGroup {
+    id            Int          @id @default(autoincrement())
+    name          String       @db.VarChar(100)
+    description   String?      @db.Text
+    status        RecordStatus @default(ACTIVE)
+    created_at    DateTime     @default(now())
+    updated_at    DateTime     @updatedAt
+    deleted_at    DateTime?
+    registered_by Int?         @map("registered_by")
+    modified_by   Int?         @map("modified_by")
+
+    // Relations
+    register_user User? @relation("fk_client_group_registered_by", fields: [registered_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+    modify_user   User? @relation("fk_client_group_modified_by", fields: [modified_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+    clients Client[] @relation("fk_client_group")
+
+    @@index([status])
+    @@index([name])
+    @@index([deleted_at])
+    @@map("client_groups")
+}
+
+model ClientPaid {
+    id            Int          @id @default(autoincrement())
+    client_id     Int?         @map("client_id")
+    visit_id      Int?         @map("visit_id")
+    amount        Decimal      @default(0) @db.Decimal(15, 2)
+    description   String?      @db.Text
+    payment_date  DateTime     @default(now()) @map("payment_date")
+    created_at    DateTime     @default(now())
+    updated_at    DateTime     @updatedAt
+    deleted_at    DateTime?
+    registered_by Int?         @map("registered_by")
+    modified_by   Int?         @map("modified_by")
+
+    // Relations
+    client        Client? @relation("fk_client_paid_client", fields: [client_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+    visit         Visit?  @relation("fk_client_paid_visit", fields: [visit_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+    register_user User?   @relation("fk_client_paid_registered_by", fields: [registered_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+    modify_user   User?   @relation("fk_client_paid_modified_by", fields: [modified_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+    @@index([client_id])
+    @@index([visit_id])
+    @@index([payment_date])
+    @@index([deleted_at])
+    @@index([client_id, payment_date])
+    @@index([visit_id, payment_date])
+    @@map("client_paid")
+}
+
+model Department {
+    id            Int          @id @default(autoincrement())
+    name          String       @db.VarChar(100)
+    description   String?      @db.Text
+    status        RecordStatus @default(ACTIVE)
+    created_at    DateTime     @default(now())
+    updated_at    DateTime     @updatedAt
+    deleted_at    DateTime?
+    registered_by Int?         @map("registered_by")
+    modified_by   Int?         @map("modified_by")
+
+    // Relations
+    register_user User? @relation("fk_department_registered_by", fields: [registered_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+    modify_user   User? @relation("fk_department_modified_by", fields: [modified_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+    rooms    Room[]    @relation("fk_room_department")
+    services Service[] @relation("fk_service_department")
+
+    @@index([status])
+    @@index([name])
+    @@index([deleted_at])
+    @@map("departments")
+}
+
+model LocRegion {
+    id            Int          @id @default(autoincrement())
+    name          String       @db.VarChar(100)
+    status        RecordStatus @default(ACTIVE)
+    created_at    DateTime     @default(now())
+    updated_at    DateTime     @updatedAt
+    deleted_at    DateTime?
+    registered_by Int?         @map("registered_by")
+    modified_by   Int?         @map("modified_by")
+
+    // Relations
+    register_user User? @relation("fk_loc_region_registered_by", fields: [registered_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+    modify_user   User? @relation("fk_loc_region_modified_by", fields: [modified_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+    clients   Client[]      @relation("fk_client_region")
+    districts LocDistrict[] @relation("fk_loc_district_region")
+
+    @@index([status])
+    @@index([name])
+    @@index([deleted_at])
+    @@map("loc_regions")
+}
+
+model LocDistrict {
+    id            Int          @id @default(autoincrement())
+    name          String       @db.VarChar(100)
+    region_id     Int?         @map("region_id")
+    status        RecordStatus @default(ACTIVE)
+    created_at    DateTime     @default(now())
+    updated_at    DateTime     @updatedAt
+    deleted_at    DateTime?
+    registered_by Int?         @map("registered_by")
+    modified_by   Int?         @map("modified_by")
+
+    // Relations
+    region        LocRegion? @relation("fk_loc_district_region", fields: [region_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+    register_user User?      @relation("fk_loc_district_registered_by", fields: [registered_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+    modify_user   User?      @relation("fk_loc_district_modified_by", fields: [modified_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+    clients Client[] @relation("fk_client_district")
+
+    @@index([region_id])
+    @@index([status])
+    @@index([name])
+    @@index([deleted_at])
+    @@index([region_id, status])
+    @@map("loc_districts")
+}
+
+model OtherPaid {
+    id            Int          @id @default(autoincrement())
+    group_id      Int?         @map("group_id")
+    type          PaymentType
+    amount        Decimal      @default(0) @db.Decimal(15, 2)
+    description   String?      @db.Text
+    payment_date  DateTime     @default(now()) @map("payment_date")
+    created_at    DateTime     @default(now())
+    updated_at    DateTime     @updatedAt
+    deleted_at    DateTime?
+    registered_by Int?         @map("registered_by")
+    modified_by   Int?         @map("modified_by")
+
+    // Relations
+    group         OtherPaidGroup? @relation("fk_other_paid_group", fields: [group_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+    register_user User?           @relation("fk_other_paid_registered_by", fields: [registered_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+    modify_user   User?           @relation("fk_other_paid_modified_by", fields: [modified_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+    @@index([group_id])
+    @@index([type])
+    @@index([payment_date])
+    @@index([deleted_at])
+    @@index([type, payment_date])
+    @@map("other_paid")
+}
+
+model OtherPaidGroup {
+    id            Int          @id @default(autoincrement())
+    name          String       @db.VarChar(100)
+    description   String?      @db.Text
+    status        RecordStatus @default(ACTIVE)
+    created_at    DateTime     @default(now())
+    updated_at    DateTime     @updatedAt
+    deleted_at    DateTime?
+    registered_by Int?         @map("registered_by")
+    modified_by   Int?         @map("modified_by")
+
+    // Relations
+    register_user User? @relation("fk_other_paid_group_registered_by", fields: [registered_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+    modify_user   User? @relation("fk_other_paid_group_modified_by", fields: [modified_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+    other_paid OtherPaid[] @relation("fk_other_paid_group")
+
+    @@index([status])
+    @@index([name])
+    @@index([deleted_at])
+    @@map("other_paid_groups")
+}
+
+model Payment {
+    id            Int          @id @default(autoincrement())
+    client_id     Int?         @map("client_id")
+    user_id       Int?         @map("user_id")
+    visit_id      Int?         @map("visit_id")
+    amount        Decimal      @default(0) @db.Decimal(15, 2)
+    payment_type  PaymentType  @default(INCOME) @map("payment_type")
+    description   String?      @db.Text
+    payment_date  DateTime     @default(now()) @map("payment_date")
+    created_at    DateTime     @default(now())
+    updated_at    DateTime     @updatedAt
+    deleted_at    DateTime?
+    registered_by Int?         @map("registered_by")
+    modified_by   Int?         @map("modified_by")
+
+    // Relations
+    client        Client? @relation("fk_payment_client", fields: [client_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+    user          User?   @relation("fk_payment_user", fields: [user_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+    visit         Visit?  @relation("fk_payment_visit", fields: [visit_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+    register_user User?   @relation("fk_payment_registered_by", fields: [registered_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+    modify_user   User?   @relation("fk_payment_modified_by", fields: [modified_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+    @@index([client_id])
+    @@index([user_id])
+    @@index([visit_id])
+    @@index([payment_type])
+    @@index([payment_date])
+    @@index([deleted_at])
+    @@index([client_id, payment_date])
+    @@index([payment_type, payment_date])
+    @@index([payment_date, deleted_at])
+    @@map("payments")
+}
+
+model Referral {
+    id            Int          @id @default(autoincrement())
+    full_name     String       @db.VarChar(100)
+    phone         String?      @db.VarChar(20)
+    description   String?      @db.Text
+    status        RecordStatus @default(ACTIVE)
+    created_at    DateTime     @default(now())
+    updated_at    DateTime     @updatedAt
+    deleted_at    DateTime?
+    registered_by Int?         @map("registered_by")
+    modified_by   Int?         @map("modified_by")
+
+    // Relations
+    register_user User? @relation("fk_referral_registered_by", fields: [registered_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+    modify_user   User? @relation("fk_referral_modified_by", fields: [modified_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+    visit_referrals VisitReferral[] @relation("fk_visit_referral_referral")
+
+    @@index([status])
+    @@index([phone])
+    @@index([deleted_at])
+    @@map("referrals")
+}
+
+model Room {
+    id            Int          @id @default(autoincrement())
+    department_id Int?         @map("department_id")
+    name          String       @db.VarChar(100)
+    room_number   String?      @map("room_number") @db.VarChar(20)
+    status        RoomStatus   @default(AVAILABLE)
+    description   String?      @db.Text
+    record_status RecordStatus @default(ACTIVE)
+    created_at    DateTime     @default(now())
+    updated_at    DateTime     @updatedAt
+    deleted_at    DateTime?
+    registered_by Int?         @map("registered_by")
+    modified_by   Int?         @map("modified_by")
+
+    // Relations
+    department    Department? @relation("fk_room_department", fields: [department_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+    register_user User?       @relation("fk_room_registered_by", fields: [registered_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+    modify_user   User?       @relation("fk_room_modified_by", fields: [modified_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+    visit_rooms VisitRoom[] @relation("fk_visit_room_room")
+
+    @@index([department_id])
+    @@index([status])
+    @@index([record_status])
+    @@index([deleted_at])
+    @@index([department_id, status])
+    @@map("rooms")
+}
+
+model Service {
+    id            Int          @id @default(autoincrement())
+    department_id Int?         @map("department_id")
+    name          String       @db.VarChar(100)
+    price         Decimal      @default(0) @db.Decimal(15, 2)
+    duration_min  Int?         @default(30) @map("duration_min")
+    description   String?      @db.Text
+    status        RecordStatus @default(ACTIVE)
+    created_at    DateTime     @default(now())
+    updated_at    DateTime     @updatedAt
+    deleted_at    DateTime?
+    registered_by Int?         @map("registered_by")
+    modified_by   Int?         @map("modified_by")
+
+    // Relations
+    department    Department? @relation("fk_service_department", fields: [department_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+    register_user User?       @relation("fk_service_registered_by", fields: [registered_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+    modify_user   User?       @relation("fk_service_modified_by", fields: [modified_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+    service_users  ServiceUser[]  @relation("fk_service_user_service")
+    visit_services VisitService[] @relation("fk_visit_service_service")
+
+    @@index([department_id])
+    @@index([status])
+    @@index([deleted_at])
+    @@index([department_id, status])
+    @@map("services")
+}
+
+model ServiceUser {
+    id            Int             @id @default(autoincrement())
+    service_id    Int?            @map("service_id")
+    user_id       Int?            @map("user_id")
+    type          ServiceUserType
+    value         Decimal         @default(0) @db.Decimal(10, 2)
+    status        RecordStatus    @default(ACTIVE)
+    created_at    DateTime     @default(now())
+    updated_at    DateTime     @updatedAt
+    deleted_at    DateTime?
+    registered_by Int?            @map("registered_by")
+    modified_by   Int?            @map("modified_by")
+
+    // Relations
+    service       Service? @relation("fk_service_user_service", fields: [service_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    user          User?    @relation("fk_service_user_user", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    register_user User?    @relation("fk_service_user_registered_by", fields: [registered_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+    modify_user   User?    @relation("fk_service_user_modified_by", fields: [modified_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+    @@unique([service_id, user_id])
+    @@index([service_id])
+    @@index([user_id])
+    @@index([status])
+    @@index([deleted_at])
+    @@index([service_id, user_id])
+    @@map("service_users")
+}
+
+model Source {
+    id            Int          @id @default(autoincrement())
+    name          String       @db.VarChar(100)
+    description   String?      @db.Text
+    status        RecordStatus @default(ACTIVE)
+    created_at    DateTime     @default(now())
+    updated_at    DateTime     @updatedAt
+    deleted_at    DateTime?
+    registered_by Int?         @map("registered_by")
+    modified_by   Int?         @map("modified_by")
+
+    // Relations
+    register_user User? @relation("fk_source_registered_by", fields: [registered_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+    modify_user   User? @relation("fk_source_modified_by", fields: [modified_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+    clients Client[] @relation("fk_client_source")
+
+    @@index([status])
+    @@index([name])
+    @@index([deleted_at])
+    @@map("sources")
+}
+
+model Visit {
+    id            Int          @id @default(autoincrement())
+    client_id     Int?         @map("client_id")
+    doctor_id     Int?         @map("doctor_id")
+    status        VisitStatus
+    total_amount  Decimal      @default(0) @map("total_amount") @db.Decimal(15, 2)
+    paid_amount   Decimal      @default(0) @map("paid_amount") @db.Decimal(15, 2)
+    debt_amount   Decimal      @default(0) @map("debt_amount") @db.Decimal(15, 2)
+    description   String?      @db.Text
+    visit_date    DateTime     @default(now()) @map("visit_date")
+    created_at    DateTime     @default(now())
+    updated_at    DateTime     @updatedAt
+    deleted_at    DateTime?
+    registered_by Int?         @map("registered_by")
+    modified_by   Int?         @map("modified_by")
+
+    // Relations
+    client        Client? @relation("fk_visit_client", fields: [client_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+    doctor        User?   @relation("fk_visit_doctor", fields: [doctor_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+    register_user User?   @relation("fk_visit_registered_by", fields: [registered_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+    modify_user   User?   @relation("fk_visit_modified_by", fields: [modified_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+    visit_referrals VisitReferral[] @relation("fk_visit_referral_visit")
+    visit_rooms     VisitRoom[]     @relation("fk_visit_room_visit")
+    visit_services  VisitService[]  @relation("fk_visit_service_visit")
+    payments        Payment[]       @relation("fk_payment_visit")
+    client_paid     ClientPaid[]    @relation("fk_client_paid_visit")
+
+    @@index([client_id])
+    @@index([doctor_id])
+    @@index([status])
+    @@index([visit_date])
+    @@index([deleted_at])
+    @@index([client_id, visit_date])
+    @@index([doctor_id, visit_date])
+    @@index([status, visit_date])
+    @@index([visit_date, deleted_at])
+    @@map("visits")
+}
+
+model VisitReferral {
+    id            Int          @id @default(autoincrement())
+    visit_id      Int?         @map("visit_id")
+    referral_id   Int?         @map("referral_id")
+    created_at    DateTime     @default(now())
+    updated_at    DateTime     @updatedAt
+    deleted_at    DateTime?
+    registered_by Int?         @map("registered_by")
+    modified_by   Int?         @map("modified_by")
+
+    // Relations
+    referral      Referral? @relation("fk_visit_referral_referral", fields: [referral_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    visit         Visit?    @relation("fk_visit_referral_visit", fields: [visit_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    register_user User?     @relation("fk_visit_referral_registered_by", fields: [registered_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+    modify_user   User?     @relation("fk_visit_referral_modified_by", fields: [modified_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+    @@unique([visit_id, referral_id])
+    @@index([visit_id])
+    @@index([referral_id])
+    @@index([deleted_at])
+    @@index([registered_by])
+    @@index([modified_by])
+    @@map("visit_referrals")
+}
+
+model VisitRoom {
+    id            Int             @id @default(autoincrement())
+    visit_id      Int?            @map("visit_id")
+    room_id       Int?            @map("room_id")
+    status        VisitRoomStatus
+    started_at    DateTime?    @map("started_at")
+    ended_at      DateTime?    @map("ended_at")
+    created_at    DateTime     @default(now())
+    updated_at    DateTime     @updatedAt
+    deleted_at    DateTime?
+    registered_by Int?            @map("registered_by")
+    modified_by   Int?            @map("modified_by")
+
+    // Relations
+    room          Room?  @relation("fk_visit_room_room", fields: [room_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    visit         Visit? @relation("fk_visit_room_visit", fields: [visit_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    register_user User?  @relation("fk_visit_room_registered_by", fields: [registered_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+    modify_user   User?  @relation("fk_visit_room_modified_by", fields: [modified_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+    @@index([visit_id])
+    @@index([room_id])
+    @@index([status])
+    @@index([deleted_at])
+    @@index([visit_id, status])
+    @@index([registered_by])
+    @@index([modified_by])
+    @@map("visit_rooms")
+}
+
+model VisitService {
+    id            Int          @id @default(autoincrement())
+    visit_id      Int?         @map("visit_id")
+    service_id    Int?         @map("service_id")
+    price         Decimal      @default(0) @db.Decimal(15, 2)
+    quantity      Int          @default(1)
+    total         Decimal      @default(0) @db.Decimal(15, 2)
+    created_at    DateTime     @default(now())
+    updated_at    DateTime     @updatedAt
+    deleted_at    DateTime?
+    registered_by Int?         @map("registered_by")
+    modified_by   Int?         @map("modified_by")
+
+    // Relations
+    service       Service? @relation("fk_visit_service_service", fields: [service_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    visit         Visit?   @relation("fk_visit_service_visit", fields: [visit_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    register_user User?    @relation("fk_visit_service_registered_by", fields: [registered_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+    modify_user   User?    @relation("fk_visit_service_modified_by", fields: [modified_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+    @@index([visit_id])
+    @@index([service_id])
+    @@index([deleted_at])
+    @@index([visit_id, service_id])
+    @@index([registered_by])
+    @@index([modified_by])
+    @@map("visit_services")
+}

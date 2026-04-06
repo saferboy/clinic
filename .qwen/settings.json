@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker ps)",
+      "Bash(npm run *)",
+      "Bash(curl *)",
+      "Bash(get-process *)",
+      "Bash(where-object *)",
+      "Bash(select-object *)",
+      "Bash(tasklist)",
+      "Bash(findstr *)",
+      "Bash(taskkill *)",
+      "Bash(npx *)",
+      "Bash(node *)",
+      "Bash(rmdir *)",
+      "Bash(get-content *)",
+      "Bash(type *)",
+      "Bash(mkdir *)",
+      "Bash(timeout *)",
+      "Bash(powershell *)",
+      "Bash(npm install *)",
+      "Bash(npm uninstall *)"
+    ]
+  },
+  "$version": 3
+}
