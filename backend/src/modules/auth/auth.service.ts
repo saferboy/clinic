@@ -5,6 +5,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import * as bcrypt from 'bcrypt';
 
 export interface JwtPayload {
@@ -288,29 +289,72 @@ export class AuthService {
   }
 
   /**
+   * Update Profile - Profil ma'lumotlarini yangilash
+   */
+  async updateProfile(userId: number, updateProfileDto: UpdateProfileDto) {
+    // 1. User topish
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user || user.deleted_at) {
+      throw new NotFoundException({
+        code: 'AUTH_005',
+        message: 'Foydalanuvchi topilmadi',
+      });
+    }
+
+    // 2. Email unique ekanligini tekshirish (agar o'zgartirilayotgan bo'lsa)
+    if (updateProfileDto.email && updateProfileDto.email !== user.email) {
+      const existingUser = await this.prisma.user.findFirst({
+        where: {
+          email: updateProfileDto.email,
+          id: { not: userId },
+          deleted_at: null,
+        },
+      });
+
+      if (existingUser) {
+        throw new BadRequestException({
+          code: 'AUTH_009',
+          message: 'Bu email allaqachon band',
+        });
+      }
+    }
+
+    // 3. Profilni yangilash
+    const updatedUser = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(updateProfileDto.full_name && { full_name: updateProfileDto.full_name }),
+        ...(updateProfileDto.email && { email: updateProfileDto.email }),
+        ...(updateProfileDto.phone !== undefined && { phone: updateProfileDto.phone }),
+        updated_at: new Date(),
+      },
+      include: {
+        role: {
+          select: { id: true, name: true, permissions: true },
+        },
+      },
+    });
+
+    const { password, ...userWithoutPassword } = updatedUser;
+
+    return {
+      success: true,
+      message: 'Profil muvaffaqiyatli yangilandi',
+      data: userWithoutPassword,
+    };
+  }
+
+  /**
    * Password strength validator
    */
   private validatePasswordStrength(password: string): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
 
-    if (password.length < 8) {
-      errors.push('Parol kamida 8 belgi bo\'lishi kerak');
-    }
-
-    if (!/[A-Z]/.test(password)) {
-      errors.push('Kamida 1 ta katta harf bo\'lishi kerak');
-    }
-
-    if (!/[a-z]/.test(password)) {
-      errors.push('Kamida 1 ta kichik harf bo\'lishi kerak');
-    }
-
-    if (!/[0-9]/.test(password)) {
-      errors.push('Kamida 1 ta raqam bo\'lishi kerak');
-    }
-
-    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-      errors.push('Kamida 1 ta maxsus belgi bo\'lishi kerak');
+    if (password.length <= 3) {
+      errors.push('Parol kamida 3 belgidan ko\'p bo\'lishi kerak');
     }
 
     return {

@@ -71,29 +71,43 @@ export async function seedUsers() {
   }
 
   for (const user of users) {
-    await prisma.user.upsert({
-      where: { login: user.login },
-      update: { 
-        role_id: user.role_id,
-        full_name: user.full_name,
-        email: user.email,
-        phone: user.phone,
-        status: RecordStatus.ACTIVE,
-      },
-      create: {
-        id: user.id,
-        role_id: user.role_id,
-        full_name: user.full_name,
-        login: user.login,
-        password: passwordHash,
-        email: user.email,
-        phone: user.phone,
-        status: RecordStatus.ACTIVE,
-      },
-    });
-    
     const roleName = roles.find(r => r.id === user.role_id)?.name || 'N/A';
-    console.log(`  ✅ User yaratildi: ${user.login} (rol: ${roleName})`);
+    
+    // Avval mavjudligini tekshirish
+    const existing = await prisma.user.findUnique({
+      where: { login: user.login },
+    });
+
+    if (existing) {
+      // Mavjud - parolni yangilash
+      await prisma.user.update({
+        where: { login: user.login },
+        data: {
+          role_id: user.role_id,
+          full_name: user.full_name,
+          email: user.email,
+          phone: user.phone,
+          password: passwordHash, // Parolni yangilash!
+          status: RecordStatus.ACTIVE,
+        },
+      });
+      console.log(`  ✅ User yangilandi: ${user.login} (rol: ${roleName})`);
+    } else {
+      // Yangi yaratish
+      await prisma.user.create({
+        data: {
+          id: user.id,
+          role_id: user.role_id,
+          full_name: user.full_name,
+          login: user.login,
+          password: passwordHash,
+          email: user.email,
+          phone: user.phone,
+          status: RecordStatus.ACTIVE,
+        },
+      });
+      console.log(`  ✅ User yaratildi: ${user.login} (rol: ${roleName})`);
+    }
   }
 
   console.log(`  ✅ Jami: ${users.length} ta foydalanuvchi\n`);
