@@ -1,9 +1,10 @@
-import { Controller, Post, Get, Body, UseGuards, Request, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Get, Put, Body, UseGuards, Request, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { ICurrentUser } from '../../common/interfaces/current-user.interface';
 
@@ -19,7 +20,7 @@ export class AuthController {
   @Post('login')
   @ApiOperation({ summary: 'Login - Autentifikatsiya' })
   @ApiResponse({ status: 200, description: 'Muvaffaqiyatli kirish' })
-  @ApiResponse({ status: 401, description: 'Login yoki parol noto\'g\'ri' })
+  @ApiResponse({ status: 401, description: 'Login yoki parol noto\'g\'ri!' })
   @ApiResponse({ status: 403, description: 'Account blokirovka qilingan' })
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
@@ -59,5 +60,15 @@ export class AuthController {
   @ApiResponse({ status: 404, description: 'Foydalanuvchi topilmadi' })
   async getProfile(@Request() req: RequestWithUser) {
     return this.authService.getProfile(req.user.id);
+  }
+
+  @Put('profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update Profile - Profil ma\'lumotlarini yangilash' })
+  @ApiResponse({ status: 200, description: 'Profil yangilandi' })
+  @ApiResponse({ status: 400, description: 'Noto\'g\'ri ma\'lumotlar' })
+  async updateProfile(@Request() req: RequestWithUser, @Body() updateProfileDto: UpdateProfileDto) {
+    return this.authService.updateProfile(req.user.id, updateProfileDto);
   }
 }

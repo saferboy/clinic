@@ -5,6 +5,16 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 
+interface FindManyParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  role_id?: number;
+  status?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
 const userSelect = {
   id: true,
   role_id: true,
@@ -17,6 +27,13 @@ const userSelect = {
   created_at: true,
   updated_at: true,
   deleted_at: true,
+  role: {
+    select: {
+      id: true,
+      name: true,
+      permissions: true,
+    },
+  },
 } satisfies Prisma.UserSelect;
 
 @Injectable()
@@ -45,12 +62,65 @@ export class UsersService {
     });
   }
 
-  async findMany() {
-    return this.prisma.user.findMany({
-      where: { deleted_at: null },
-      orderBy: { created_at: 'desc' },
-      select: userSelect,
-    });
+  async findMany(params: FindManyParams = {}) {
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      role_id,
+      status,
+      sortBy = 'created_at',
+      sortOrder = 'desc',
+    } = params;
+
+    const skip = (page - 1) * limit;
+
+    // Where shartlari
+    const where: Prisma.UserWhereInput = { deleted_at: null };
+
+    if (search) {
+      where.OR = [
+        { full_name: { contains: search, mode: 'insensitive' } },
+        { login: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+        { phone: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    if (role_id) {
+      where.role_id = role_id;
+    }
+
+    if (status) {
+      where.status = status as any;
+    }
+
+    // Order by
+    const orderBy: Prisma.UserOrderByWithRelationInput = {
+      [sortBy]: sortOrder,
+    };
+
+    // Parallel: data va total count
+    const [data, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        orderBy,
+        skip,
+        take: limit,
+        select: userSelect,
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async findOne(id: number) {
@@ -106,6 +176,28 @@ export class UsersService {
       data: { deleted_at: new Date() },
       select: userSelect,
     });
+  }
+
+  /**
+   * Admin tomonidan foydalanuvchi parolini tiklash
+   */
+  async resetPassword(id: number, customPassword?: string) {
+    await this.findRaw(id);
+
+    // Agar parol berilmagan bo'lsa, default parol
+    const password = customPassword || '1234';
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const updatedUser = await this.prisma.user.update({
+      where: { id },
+      data: { password: hashedPassword },
+      select: userSelect,
+    });
+
+    return {
+      ...updatedUser,
+      tempPassword: password,
+    };
   }
 }
 

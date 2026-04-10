@@ -1,11 +1,10 @@
-import { IsString, IsNotEmpty, MaxLength } from 'class-validator';
+import { IsString, IsNotEmpty, MaxLength, MinLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsPasswordStrong } from '../../../common/decorators/is-password-strong.decorator';
 
 export class ChangePasswordDto {
   @ApiProperty({
     description: 'Eski parol',
-    example: 'Admin@123',
+    example: '12345',
   })
   @IsString()
   @IsNotEmpty()
@@ -13,15 +12,13 @@ export class ChangePasswordDto {
 
   @ApiProperty({
     description: 'Yangi parol',
-    example: 'NewAdmin@456',
-    minLength: 8,
+    example: 'newpass',
+    minLength: 4,
     maxLength: 255,
   })
   @IsString()
   @IsNotEmpty()
-  @IsPasswordStrong({
-    message: 'Yangi parol kamida 8 belgi, katta harf, kichik harf, raqam va maxsus belgi bo\'lishi kerak',
-  })
+  @MinLength(4, { message: 'Parol kamida 4 belgi bo\'lishi kerak' })
   @MaxLength(255)
   new_password: string;
 }
