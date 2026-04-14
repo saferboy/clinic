@@ -1,0 +1,24 @@
+# Windows reserved names
+nul
+
+# IDE & Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+
+# Environment
+.env
+.env.local
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
