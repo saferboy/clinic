@@ -102,13 +102,25 @@ export interface Payment {
 }
 
 export interface Room {
-  id: string;
+  id: number;
   name: string;
-  number: string;
-  type: string;
-  status: 'available' | 'occupied' | 'maintenance';
-  floor: number;
-  doctor: string;
+  room_number: string | null;
+  department_id: number | null;
+  status: 'AVAILABLE' | 'OCCUPIED' | 'MAINTENANCE' | 'CLOSED';
+  description: string | null;
+  record_status: 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+  registered_by: number | null;
+  modified_by: number | null;
+  department?: {
+    id: number;
+    name: string;
+  };
+  _count?: {
+    visit_rooms: number;
+  };
 }
 
 export interface KpiCard {

@@ -51,7 +51,7 @@ export function DashboardLayout() {
           darkMode={darkMode}
           onDarkModeToggle={() => setDarkMode(!darkMode)}
         />
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-[#f5f6fa] dark:bg-slate-950">
+        <main className="flex-1 p-4 md:p-6 bg-[#f5f6fa] dark:bg-slate-950">
           <Outlet />
         </main>
       </div>

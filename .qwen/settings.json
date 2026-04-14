@@ -19,7 +19,10 @@
       "Bash(timeout *)",
       "Bash(powershell *)",
       "Bash(npm install *)",
-      "Bash(npm uninstall *)"
+      "Bash(npm uninstall *)",
+      "Bash(netstat *)",
+      "Bash(net *)",
+      "Bash(ping *)"
     ]
   },
   "$version": 3
