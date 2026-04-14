@@ -207,6 +207,37 @@ export class RoomsService {
   }
 
   /**
+   * Xonalar statistikasini olish
+   */
+  async getStats(departmentId?: number) {
+    const where: any = { deleted_at: null };
+    if (departmentId) {
+      where.department_id = Number(departmentId);
+    }
+
+    const [available, occupied, maintenance, closed] = await Promise.all([
+      this.prisma.room.count({ where: { ...where, status: 'AVAILABLE' } }),
+      this.prisma.room.count({ where: { ...where, status: 'OCCUPIED' } }),
+      this.prisma.room.count({ where: { ...where, status: 'MAINTENANCE' } }),
+      this.prisma.room.count({ where: { ...where, status: 'CLOSED' } }),
+    ]);
+
+    const total = available + occupied + maintenance + closed;
+
+    return {
+      success: true,
+      message: 'Xonalar statistikasi olindi',
+      data: {
+        total,
+        available,
+        occupied,
+        maintenance,
+        closed,
+      },
+    };
+  }
+
+  /**
    * Bitta xonani olish
    */
   async findOne(id: number) {

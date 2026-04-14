@@ -8,6 +8,7 @@ import {
   Patch,
   Post,
   Query,
+  Request,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiQuery, ApiBody } from '@nestjs/swagger';
@@ -15,6 +16,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { UpdateRoomDto, UpdateRoomStatusDto } from './dto/update-room.dto';
 import { RoomsService } from './rooms.service';
+import { ICurrentUser } from '../../common/interfaces/current-user.interface';
 
 @ApiTags('rooms')
 @ApiBearerAuth('bearer')
@@ -24,8 +26,8 @@ export class RoomsController {
   constructor(private readonly roomsService: RoomsService) {}
 
   @Post()
-  create(@Body() dto: CreateRoomDto) {
-    return this.roomsService.create(dto);
+  create(@Request() req: { user: ICurrentUser }, @Body() dto: CreateRoomDto) {
+    return this.roomsService.create(dto, req.user.id);
   }
 
   @Get()
@@ -46,14 +48,20 @@ export class RoomsController {
     return this.roomsService.findAvailable(query);
   }
 
+  @Get('stats')
+  @ApiQuery({ name: 'department_id', required: false, type: Number })
+  getStats(@Query() query: { department_id?: number }) {
+    return this.roomsService.getStats(query.department_id);
+  }
+
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.roomsService.findOne(id);
   }
 
   @Patch(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateRoomDto) {
-    return this.roomsService.update(id, dto);
+  update(@Request() req: { user: ICurrentUser }, @Param('id', ParseIntPipe) id: number, @Body() dto: UpdateRoomDto) {
+    return this.roomsService.update(id, dto, req.user.id);
   }
 
   @Patch(':id/status')
@@ -75,12 +83,12 @@ export class RoomsController {
       },
     },
   })
-  updateStatus(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateRoomStatusDto) {
-    return this.roomsService.updateStatus(id, dto);
+  updateStatus(@Request() req: { user: ICurrentUser }, @Param('id', ParseIntPipe) id: number, @Body() dto: UpdateRoomStatusDto) {
+    return this.roomsService.updateStatus(id, dto, req.user.id);
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.roomsService.remove(id);
+  remove(@Request() req: { user: ICurrentUser }, @Param('id', ParseIntPipe) id: number) {
+    return this.roomsService.remove(id, req.user.id);
   }
 }
