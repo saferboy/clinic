@@ -159,6 +159,7 @@ export function hasAccess(roleName: string | undefined, page: string): boolean {
     payments: ['SuperAdmin', 'Admin', 'Receptionist', 'Accountant'],
     services: ['SuperAdmin', 'Admin', 'Doctor', 'Accountant'],
     rooms: ['SuperAdmin', 'Admin', 'Doctor', 'Nurse', 'Receptionist'],
+    departments: ['SuperAdmin', 'Admin'],
     reports: ['SuperAdmin', 'Admin', 'Doctor', 'Receptionist', 'Accountant'],
     settings: ['SuperAdmin', 'Admin'],
     users: ['SuperAdmin', 'Admin'],
