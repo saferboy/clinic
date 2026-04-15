@@ -3,7 +3,10 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
+  Res,
 } from '@nestjs/common';
+import * as ExcelJS from 'exceljs';
 import { Prisma, Client } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateClientDto } from './dto/create-client.dto';
@@ -249,6 +252,48 @@ export class ClientsService {
         totalPages: Math.ceil(total / limit),
         hasNextPage: skip + limit < total,
         hasPrevPage: page > 1,
+      },
+    };
+  }
+
+  /**
+   * Mijozlar statistikasini olish
+   */
+  async getStats() {
+    const [
+      total,
+      active,
+      inactive,
+      archived,
+      male,
+      female,
+      debtClients,
+    ] = await Promise.all([
+      this.prisma.client.count({ where: { deleted_at: null } }),
+      this.prisma.client.count({ where: { deleted_at: null, status: 'ACTIVE' } }),
+      this.prisma.client.count({ where: { deleted_at: null, status: 'INACTIVE' } }),
+      this.prisma.client.count({ where: { deleted_at: null, status: 'ARCHIVED' } }),
+      this.prisma.client.count({ where: { deleted_at: null, gender: 'MALE' } }),
+      this.prisma.client.count({ where: { deleted_at: null, gender: 'FEMALE' } }),
+      this.prisma.client.count({
+        where: {
+          deleted_at: null,
+          balance: { lt: 0 },
+        },
+      }),
+    ]);
+
+    return {
+      success: true,
+      message: 'Mijozlar statistikasi olindi',
+      data: {
+        total,
+        active,
+        inactive,
+        archived,
+        male,
+        female,
+        debt: debtClients,
       },
     };
   }
@@ -661,5 +706,90 @@ export class ClientsService {
     });
     if (!row) throw new NotFoundException('Mijoz topilmadi');
     return row;
+  }
+
+  /**
+   * Barcha mijozlarni Excelga eksport qilish
+   */
+  async exportAll(query: any) {
+    const where: any = { deleted_at: null };
+
+    if (query.status && query.status !== 'ALL') {
+      where.status = query.status;
+    }
+    if (query.gender && query.gender !== 'ALL') {
+      where.gender = query.gender;
+    }
+    if (query.group_id && query.group_id !== 'ALL') {
+      where.group_id = Number(query.group_id);
+    }
+    if (query.full_name) {
+      where.full_name = { contains: query.full_name, mode: 'insensitive' };
+    }
+
+    const clients = await this.prisma.client.findMany({
+      where,
+      include: {
+        group: { select: { name: true } },
+        region: { select: { name: true } },
+        district: { select: { name: true } },
+        source: { select: { name: true } },
+        _count: { select: { visits: true, payments: true } },
+      },
+      orderBy: { created_at: 'desc' },
+    });
+
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'Clinic';
+    workbook.created = new Date();
+
+    const sheet = workbook.addWorksheet('Mijozlar');
+
+    sheet.columns = [
+      { header: 'ID', key: 'id', width: 8 },
+      { header: 'To\'liq ism', key: 'full_name', width: 25 },
+      { header: 'Telefon', key: 'phone', width: 15 },
+      { header: 'Jins', key: 'gender', width: 10 },
+      { header: 'Tug\'ilgan sana', key: 'date_of_birth', width: 14 },
+      { header: 'Manzil', key: 'address', width: 30 },
+      { header: 'Viloyat', key: 'region', width: 15 },
+      { header: 'Tuman', key: 'district', width: 15 },
+      { header: 'Guruh', key: 'group', width: 12 },
+      { header: 'Manba', key: 'source', width: 12 },
+      { header: 'Balans', key: 'balance', width: 12 },
+      { header: 'Tashriflar soni', key: 'visits', width: 12 },
+      { header: 'Holat', key: 'status', width: 10 },
+      { header: 'Yaratilgan sana', key: 'created_at', width: 16 },
+    ];
+
+    for (const client of clients) {
+      sheet.addRow({
+        id: client.id,
+        full_name: client.full_name,
+        phone: client.phone,
+        gender: client.gender === 'MALE' ? 'Erkak' : client.gender === 'FEMALE' ? 'Ayol' : 'Boshqa',
+        date_of_birth: client.date_of_birth ? new Date(client.date_of_birth).toLocaleDateString('uz-UZ') : '',
+        address: client.address || '',
+        region: client.region?.name || '',
+        district: client.district?.name || '',
+        group: client.group?.name || '',
+        source: client.source?.name || '',
+        balance: client.balance,
+        visits: client._count?.visits || 0,
+        status: client.status === 'ACTIVE' ? 'Faol' : client.status === 'INACTIVE' ? 'Nofaol' : 'Arxiv',
+        created_at: new Date(client.created_at).toLocaleString('uz-UZ'),
+      });
+    }
+
+    sheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    sheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF2563EB' },
+    };
+    sheet.getRow(1).alignment = { horizontal: 'center' };
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    return Buffer.from(buffer);
   }
 }
