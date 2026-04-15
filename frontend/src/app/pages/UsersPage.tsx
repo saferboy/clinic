@@ -241,11 +241,10 @@ function Pagination({
             <button
               key={p}
               onClick={() => onPageChange(p)}
-              className={`min-w-[36px] h-9 rounded-lg text-sm font-medium transition-colors ${
-                p === page
+              className={`min-w-[36px] h-9 rounded-lg text-sm font-medium transition-colors ${p === page
                   ? 'bg-blue-600 text-white'
                   : 'hover:bg-muted text-muted-foreground'
-              }`}
+                }`}
             >
               {p}
             </button>
@@ -301,11 +300,10 @@ function FilterBar({
         </div>
         <button
           onClick={() => setOpen(!open)}
-          className={`px-4 py-2.5 rounded-xl text-sm flex items-center gap-2 border transition-colors ${
-            open || hasFilters
+          className={`px-4 py-2.5 rounded-xl text-sm flex items-center gap-2 border transition-colors ${open || hasFilters
               ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300'
               : 'bg-white dark:bg-slate-800 border-border text-muted-foreground hover:bg-muted'
-          }`}
+            }`}
         >
           <Filter size={16} />
           Filtrlar
@@ -399,21 +397,19 @@ function PasswordResetModal({ user, onClose, onReset }: {
           <div className="flex items-center gap-3">
             <button
               onClick={() => { setUseCustom(false); setNewPassword(''); }}
-              className={`flex-1 py-2.5 rounded-xl text-sm font-medium border transition-colors ${
-                !useCustom
+              className={`flex-1 py-2.5 rounded-xl text-sm font-medium border transition-colors ${!useCustom
                   ? 'bg-blue-600 text-white border-blue-600'
                   : 'bg-background text-muted-foreground border-border hover:bg-muted'
-              }`}
+                }`}
             >
               Avtomatik (1234)
             </button>
             <button
               onClick={() => setUseCustom(true)}
-              className={`flex-1 py-2.5 rounded-xl text-sm font-medium border transition-colors ${
-                useCustom
+              className={`flex-1 py-2.5 rounded-xl text-sm font-medium border transition-colors ${useCustom
                   ? 'bg-blue-600 text-white border-blue-600'
                   : 'bg-background text-muted-foreground border-border hover:bg-muted'
-              }`}
+                }`}
             >
               Yangi parol
             </button>

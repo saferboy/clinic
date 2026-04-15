@@ -8,6 +8,7 @@ import { VisitsPage } from './pages/VisitsPage';
 import { PaymentsPage } from './pages/PaymentsPage';
 import { ServicesPage } from './pages/ServicesPage';
 import { RoomsPage } from './pages/RoomsPage';
+import { DepartmentsPage } from './pages/DepartmentsPage';
 import { ReportsPage } from './pages/ReportsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { UsersPage } from './pages/UsersPage';
@@ -36,6 +37,7 @@ export const router = createBrowserRouter([
       { path: 'payments', Component: PaymentsPage },
       { path: 'services', Component: ServicesPage },
       { path: 'rooms', Component: RoomsPage },
+      { path: 'departments', Component: DepartmentsPage },
       { path: 'reports', Component: ReportsPage },
       { path: 'settings', Component: SettingsPage },
       { path: 'users', Component: UsersPage },

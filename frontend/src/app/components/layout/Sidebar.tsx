@@ -22,6 +22,7 @@ const navItems: NavItem[] = [
   { label: 'To\'lovlar', path: '/payments', icon: <CreditCard size={20} />, page: 'payments' },
   { label: 'Xizmatlar', path: '/services', icon: <Stethoscope size={20} />, page: 'services' },
   { label: 'Xonalar', path: '/rooms', icon: <BedDouble size={20} />, page: 'rooms' },
+  { label: 'Bo\'limlar', path: '/departments', icon: <Wrench size={20} />, page: 'departments' },
   { label: 'Hisobotlar', path: '/reports', icon: <BarChart3 size={20} />, page: 'reports' },
   { label: 'Sozlamalar', path: '/settings', icon: <Settings size={20} />, page: 'settings' },
   { label: 'Foydalanuvchilar', path: '/users', icon: <UserCog size={20} />, page: 'users' },
