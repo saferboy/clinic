@@ -8,6 +8,7 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
@@ -43,12 +44,29 @@ export class ClientsController {
     return this.clientsService.findMany(query);
   }
 
+  @Get('stats')
+  getStats() {
+    return this.clientsService.getStats();
+  }
+
   @Get('search')
   @ApiQuery({ name: 'phone', required: false, type: String })
   @ApiQuery({ name: 'full_name', required: false, type: String })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   search(@Query() query: { phone?: string; full_name?: string; limit?: number }) {
     return this.clientsService.search(query);
+  }
+
+  @Get('export')
+  @ApiQuery({ name: 'status', required: false, type: String })
+  @ApiQuery({ name: 'gender', required: false, type: String })
+  @ApiQuery({ name: 'group_id', required: false, type: Number })
+  @ApiQuery({ name: 'full_name', required: false, type: String })
+  async export(@Res() res: any, @Query() query: any) {
+    const buffer = await this.clientsService.exportAll(query);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="mijozlar.xlsx"');
+    res.send(buffer);
   }
 
   @Get(':id')
