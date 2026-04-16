@@ -200,5 +200,5 @@ export const clientsApi = {
     return api.get<ApiResponse<any>>(`/clients/${id}/payments${queryString ? `?${queryString}` : ''}`, true);
   },
 
-  getGroups: () => api.get<{ data: { id: number; name: string }[]}>('/client-groups', true),
+  getGroups: () => api.get<any>('/client-groups?limit=100', true),
 };

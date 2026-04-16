@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, Logger, ConflictException } from '@nestj
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateClientGroupDto } from './dto/create-client-group.dto';
 import { UpdateClientGroupDto } from './dto/update-client-group.dto';
+import { GetClientGroupsQueryDto } from './dto/get-client-groups-query.dto';
 import { ICurrentUser } from '../../common/interfaces/current-user.interface';
 
 @Injectable()
@@ -11,7 +12,6 @@ export class ClientGroupsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreateClientGroupDto, user: ICurrentUser) {
-    // Unique name tekshirish (case-insensitive)
     await this.checkUniqueName(dto.name);
 
     return this.prisma.clientGroup.create({
@@ -33,19 +33,48 @@ export class ClientGroupsService {
     });
   }
 
-  async findMany() {
-    return this.prisma.clientGroup.findMany({
-      where: { deleted_at: null },
-      orderBy: { created_at: 'desc' },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        status: true,
-        created_at: true,
-        updated_at: true,
+  async findMany(query: GetClientGroupsQueryDto) {
+    const where: any = { deleted_at: null };
+
+    if (query.status) {
+      where.status = query.status;
+    }
+
+    if (query.search) {
+      where.name = {
+        contains: query.search,
+        mode: 'insensitive',
+      };
+    }
+
+    const skip = (query.page! - 1) * query.limit!;
+    const take = Math.min(query.limit!, 100);
+
+    const orderBy = {
+      [query.sortBy!]: query.sortOrder!,
+    };
+
+    const [data, total] = await Promise.all([
+      this.prisma.clientGroup.findMany({
+        where,
+        skip,
+        take,
+        orderBy,
+      }),
+      this.prisma.clientGroup.count({ where }),
+    ]);
+
+    return {
+      data,
+      pagination: {
+        page: query.page,
+        limit: take,
+        total,
+        totalPages: Math.ceil(total / take),
+        hasNextPage: skip + take < total,
+        hasPrevPage: query.page! > 1,
       },
-    });
+    };
   }
 
   async findOne(id: number) {
