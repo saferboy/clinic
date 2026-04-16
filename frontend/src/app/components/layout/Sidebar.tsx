@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from 'react-router';
 import {
   LayoutDashboard, Users, Calendar, CreditCard, BarChart3,
   Settings, UserCog, LogOut, Building2, Stethoscope, ChevronLeft, ChevronRight,
-  BedDouble, Wrench, Menu, X
+  BedDouble, Wrench, Menu, X, UsersRound
 } from 'lucide-react';
 import { useAuth, hasAccess } from '../../contexts/AuthContext';
 import { getStatusLabel } from '../../mockData';
@@ -18,6 +18,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={20} />, page: 'dashboard' },
   { label: 'Mijozlar', path: '/clients', icon: <Users size={20} />, page: 'clients' },
+  { label: 'Mijoz guruhlari', path: '/client-groups', icon: <UsersRound size={20} />, page: 'client-groups' },
   { label: 'Tashriflar', path: '/visits', icon: <Calendar size={20} />, page: 'visits' },
   { label: 'To\'lovlar', path: '/payments', icon: <CreditCard size={20} />, page: 'payments' },
   { label: 'Xizmatlar', path: '/services', icon: <Stethoscope size={20} />, page: 'services' },

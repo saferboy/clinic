@@ -158,7 +158,9 @@ export function ClientsPage() {
 
   useEffect(() => {
     clientsApi.getGroups().then((res: any) => {
-      setGroups(res.data || []);
+      const backendData = res?.data;
+      const groupsData = backendData?.data || backendData || [];
+      setGroups(groupsData);
     }).catch(() => {});
   }, []);
 

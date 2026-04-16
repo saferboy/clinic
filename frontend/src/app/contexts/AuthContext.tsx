@@ -155,6 +155,7 @@ export function hasAccess(roleName: string | undefined, page: string): boolean {
   const access: Record<string, UserRole[]> = {
     dashboard: ['SuperAdmin', 'Admin', 'Doctor', 'Nurse', 'Receptionist', 'Accountant'],
     clients: ['SuperAdmin', 'Admin', 'Doctor', 'Receptionist', 'Accountant'],
+    'client-groups': ['SuperAdmin', 'Admin', 'Doctor', 'Accountant'],
     visits: ['SuperAdmin', 'Admin', 'Doctor', 'Nurse', 'Receptionist', 'Accountant'],
     payments: ['SuperAdmin', 'Admin', 'Receptionist', 'Accountant'],
     services: ['SuperAdmin', 'Admin', 'Doctor', 'Accountant'],

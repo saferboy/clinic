@@ -4,6 +4,7 @@ import { AuthGuard, GuestGuard } from './components/guards/AuthGuard';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ClientsPage } from './pages/ClientsPage';
+import { ClientGroupsPage } from './pages/ClientGroupsPage';
 import { VisitsPage } from './pages/VisitsPage';
 import { PaymentsPage } from './pages/PaymentsPage';
 import { ServicesPage } from './pages/ServicesPage';
@@ -33,6 +34,7 @@ export const router = createBrowserRouter([
       { index: true, element: <Navigate to="/dashboard" replace /> },
       { path: 'dashboard', Component: DashboardPage },
       { path: 'clients', Component: ClientsPage },
+      { path: 'client-groups', Component: ClientGroupsPage },
       { path: 'visits', Component: VisitsPage },
       { path: 'payments', Component: PaymentsPage },
       { path: 'services', Component: ServicesPage },

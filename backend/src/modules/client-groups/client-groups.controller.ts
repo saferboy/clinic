@@ -1,8 +1,9 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Query, Request, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CreateClientGroupDto } from './dto/create-client-group.dto';
 import { UpdateClientGroupDto } from './dto/update-client-group.dto';
+import { GetClientGroupsQueryDto } from './dto/get-client-groups-query.dto';
 import { ClientGroupsService } from './client-groups.service';
 import { ICurrentUser } from '../../common/interfaces/current-user.interface';
 
@@ -17,16 +18,16 @@ export class ClientGroupsController {
   async create(@Request() req: { user: ICurrentUser }, @Body() dto: CreateClientGroupDto) {
     const clientGroup = await this.clientGroupsService.create(dto, req.user);
     return {
-      message: 'Client group muvaffaqiyatli yaratildi',
+      message: 'Mijoz guruhi muvaffaqiyatli yaratildi',
       data: clientGroup,
     };
   }
 
   @Get()
-  async findMany() {
-    const result = await this.clientGroupsService.findMany();
+  async findMany(@Query() query: GetClientGroupsQueryDto) {
+    const result = await this.clientGroupsService.findMany(query);
     return {
-      message: 'Client groups ro\'yxati',
+      message: 'Mijoz guruhlari ro\'yxati',
       data: result,
     };
   }
