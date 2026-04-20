@@ -57,10 +57,11 @@ export const usersService = {
     if (params?.sortOrder) queryParams.set('sortOrder', params.sortOrder);
 
     const queryString = queryParams.toString();
-    const response = await api.get<UsersPaginatedResponse>(`/users${queryString ? `?${queryString}` : ''}`, true);
+    const response = await api.get<any>(`/users${queryString ? `?${queryString}` : ''}`, true);
+    const usersData = response?.data?.data || response?.data || [];
     return {
-      users: response.data.map(mapBackendToFrontend),
-      meta: response.meta,
+      users: Array.isArray(usersData) ? usersData.map((u: any) => mapBackendToFrontend(u)).filter(Boolean) : [],
+      meta: response?.data?.meta || response?.meta,
     };
   },
 

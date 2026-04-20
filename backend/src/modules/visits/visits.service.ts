@@ -70,12 +70,37 @@ export class VisitsService {
         include: { role: true },
       });
 
-      if (!doctor || doctor.deleted_at || doctor.role?.name !== 'Doctor') {
-        throw new NotFoundException('Shifokor topilmadi');
+      if (!doctor || doctor.deleted_at || doctor.status !== 'ACTIVE') {
+        throw new NotFoundException('Shifokor topilmadi yoki faol emas');
+      }
+      if (!doctor.role || (doctor.role.name !== 'Doctor' && doctor.role.name !== 'Nurse')) {
+        throw new NotFoundException(`Foydalanuvchi roli "${doctor.role?.name || 'N/A'}" - faqat Doctor yoki Nurse roli tanlash mumkin`);
       }
     }
 
-    // 3. Visit yaratish
+    // 3. Room mavjudligini tekshirish (agar kiritilgan bo'lsa)
+    if (dto.room_id) {
+      const room = await this.prisma.room.findUnique({
+        where: { id: dto.room_id },
+      });
+
+      if (!room || room.deleted_at || room.record_status !== 'ACTIVE') {
+        throw new NotFoundException('Xona topilmadi');
+      }
+    }
+
+    // 4. Services mavjudligini tekshirish (agar kiritilgan bo'lsa)
+    if (dto.service_ids && dto.service_ids.length > 0) {
+      const services = await this.prisma.service.findMany({
+        where: { id: { in: dto.service_ids } },
+      });
+
+      if (services.length !== dto.service_ids.length) {
+        throw new NotFoundException('Ba\'zi xizmatlar topilmadi');
+      }
+    }
+
+    // 5. Visit yaratish
     const visit = await this.prisma.visit.create({
       data: {
         client_id: dto.client_id,
@@ -93,10 +118,63 @@ export class VisitsService {
       select: visitSelect,
     });
 
+    // 6. Room biriktirish (agar kiritilgan bo'lsa)
+    if (dto.room_id) {
+      await this.prisma.visitRoom.create({
+        data: {
+          visit_id: visit.id,
+          room_id: dto.room_id,
+          status: 'ASSIGNED',
+          started_at: new Date(),
+          created_at: new Date(),
+          updated_at: new Date(),
+          registered_by: userId,
+        },
+      });
+
+      await this.prisma.room.update({
+        where: { id: dto.room_id },
+        data: { status: 'OCCUPIED', updated_at: new Date() },
+      });
+    }
+
+    // 7. Xizmatlar biriktirish (agar kiritilgan bo'lsa)
+    if (dto.service_ids && dto.service_ids.length > 0) {
+      for (const serviceId of dto.service_ids) {
+        const service = await this.prisma.service.findUnique({
+          where: { id: serviceId },
+        });
+
+        if (service && !service.deleted_at) {
+          await this.prisma.visitService.create({
+            data: {
+              visit_id: visit.id,
+              service_id: serviceId,
+              price: Number(service.price),
+              quantity: 1,
+              total: Number(service.price),
+              created_at: new Date(),
+              updated_at: new Date(),
+              registered_by: userId,
+            },
+          });
+        }
+      }
+    }
+
+    // 8. Visit miqdorlarini qayta hisoblash
+    await this.recalculateVisitAmounts(visit.id);
+
+    // 9. Updated visitni qaytarish
+    const updatedVisit = await this.prisma.visit.findUnique({
+      where: { id: visit.id },
+      select: visitSelect,
+    });
+
     return {
       success: true,
       message: 'Visit muvaffaqiyatli yaratildi',
-      data: visit,
+      data: updatedVisit,
     };
   }
 
@@ -257,8 +335,11 @@ export class VisitsService {
         include: { role: true },
       });
 
-      if (!doctor || doctor.deleted_at || doctor.role?.name !== 'Doctor') {
-        throw new NotFoundException('Shifokor topilmadi');
+      if (!doctor || doctor.deleted_at || doctor.status !== 'ACTIVE') {
+        throw new NotFoundException('Shifokor topilmadi yoki faol emas');
+      }
+      if (!doctor.role || (doctor.role.name !== 'Doctor' && doctor.role.name !== 'Nurse')) {
+        throw new NotFoundException(`Foydalanuvchi roli "${doctor.role?.name || 'N/A'}" - faqat Doctor yoki Nurse roli tanlash mumkin`);
       }
     }
 

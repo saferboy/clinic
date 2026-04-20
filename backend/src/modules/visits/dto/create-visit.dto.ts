@@ -6,6 +6,7 @@ import {
   IsInt,
   Min,
   IsDateString,
+  IsArray,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -30,6 +31,18 @@ export class CreateVisitDto {
   @IsInt()
   @Min(1)
   doctor_id?: number;
+
+  @ApiPropertyOptional({ description: 'Xona ID', example: 1 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  room_id?: number;
+
+  @ApiPropertyOptional({ description: 'Xizmatlar ro\'yxati', example: [1, 2] })
+  @IsOptional()
+  @IsArray()
+  @IsInt({ each: true })
+  service_ids?: number[];
 
   @ApiPropertyOptional({ description: 'Qabul sanasi', example: '2024-01-15T10:00:00Z' })
   @IsOptional()
