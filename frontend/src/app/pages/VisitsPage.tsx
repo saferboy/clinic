@@ -153,7 +153,7 @@ function VisitModal({ visit, clients, onClose, onSave, isLoading }: {
                 <input
                   id="client-input"
                   type="text"
-                  value={selectedClient ? selectedClient.full_name : clientSearch}
+                  value={selectedClient?.full_name ?? clientSearch}
                   onChange={e => {
                     setClientSearch(e.target.value);
                     setForm({ ...form, client_id: 0 });
@@ -172,13 +172,13 @@ function VisitModal({ visit, clients, onClose, onSave, isLoading }: {
                         type="button"
                         onClick={() => {
                           setForm({ ...form, client_id: client.id });
-                          setClientSearch(client.full_name);
+                          setClientSearch(client.full_name ?? '');
                           setShowClientSearch(false);
                         }}
                         className="w-full px-3 py-2 text-left text-sm hover:bg-muted"
                       >
-                        <div className="font-medium">{client.full_name}</div>
-                        <div className="text-xs text-muted-foreground">{client.phone}</div>
+                        <div className="font-medium">{client.full_name ?? '—'}</div>
+                        <div className="text-xs text-muted-foreground">{client.phone ?? '—'}</div>
                       </button>
                     ))}
                   </div>
@@ -364,8 +364,8 @@ function ClientSearchModal({ onClose, onSelect, isLoading }: {
               disabled={isLoading}
               className="w-full px-3 py-2 text-left hover:bg-muted rounded-lg mb-1 disabled:opacity-50"
             >
-              <div className="font-medium">{client.full_name}</div>
-              <div className="text-xs text-muted-foreground">{client.phone}</div>
+              <div className="font-medium">{client.full_name ?? '—'}</div>
+              <div className="text-xs text-muted-foreground">{client.phone ?? '—'}</div>
             </button>
           ))}
           {clients.length === 0 && search.length >= 2 && (
@@ -478,9 +478,9 @@ const handleSave = async (dto: CreateVisitDto, action?: string) => {
 
   const filtered = visits.filter(v => {
     const clientMatch = !search || 
-      v.client?.full_name.toLowerCase().includes(search.toLowerCase());
+      v.client?.full_name?.toLowerCase()?.includes(search.toLowerCase());
     const doctorMatch = !search || 
-      v.doctor?.full_name.toLowerCase().includes(search.toLowerCase());
+      v.doctor?.full_name?.toLowerCase()?.includes(search.toLowerCase());
     return clientMatch || doctorMatch;
   });
 
@@ -588,7 +588,7 @@ const handleSave = async (dto: CreateVisitDto, action?: string) => {
               const date = new Date();
               date.setDate(date.getDate() - date.getDay() + i);
               const dateStr = date.toISOString().split('T')[0];
-              const dayVisits = visits.filter(v => v.visit_date.startsWith(dateStr));
+              const dayVisits = visits.filter(v => v.visit_date?.startsWith(dateStr));
               return (
                 <div
                   key={i}
@@ -611,7 +611,7 @@ const handleSave = async (dto: CreateVisitDto, action?: string) => {
                         key={v.id}
                         className={`text-xs px-1 py-0.5 rounded ${getStatusColor(v.status)} truncate`}
                       >
-                        {v.client?.full_name.split(' ')[0]}
+                        {v.client?.full_name?.split(' ')[0]}
                       </div>
                     ))}
                     {dayVisits.length > 2 && (
@@ -664,14 +664,14 @@ const handleSave = async (dto: CreateVisitDto, action?: string) => {
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <div className="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-700 text-xs font-semibold">
-                              {visit.client?.full_name.charAt(0)}
+                              {visit.client?.full_name?.charAt(0)}
                             </div>
                             <div>
                               <div className="font-medium text-foreground">
-                                {visit.client?.full_name}
+                                {visit.client?.full_name || '—'}
                               </div>
                               <div className="text-xs text-muted-foreground">
-                                {visit.client?.phone}
+                                {visit.client?.phone || '—'}
                               </div>
                             </div>
                           </div>
@@ -681,21 +681,21 @@ const handleSave = async (dto: CreateVisitDto, action?: string) => {
                         </td>
                         <td className="px-4 py-3">
                           <div className="text-foreground text-xs">
-                            {new Date(visit.visit_date).toLocaleDateString('uz-UZ')}
+                            {visit.visit_date ? new Date(visit.visit_date).toLocaleDateString('uz-UZ') : '—'}
                           </div>
                           <div className="flex items-center gap-1 text-muted-foreground text-xs mt-0.5">
                             <Clock size={11} />
-                            {new Date(visit.visit_date).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })}
+                            {visit.visit_date ? new Date(visit.visit_date).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }) : '—'}
                           </div>
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex flex-wrap gap-1">
-                            {visit.visit_services?.slice(0, 1).map(s => (
+                            {visit.visit_services && visit.visit_services.length > 0 && visit.visit_services.slice(0, 1).map(s => (
                               <span
                                 key={s.id}
                                 className="px-1.5 py-0.5 bg-muted rounded text-xs"
                               >
-                                {s.service.name}
+                                {s.service?.name || '—'}
                               </span>
                             ))}
                             {(visit.visit_services?.length || 0) > 1 && (
@@ -707,11 +707,11 @@ const handleSave = async (dto: CreateVisitDto, action?: string) => {
                         </td>
                         <td className="px-4 py-3">
                           <div className="text-foreground text-xs font-medium">
-                            {formatCurrency(visit.total_amount)}
+                            {formatCurrency(visit.total_amount ?? 0)}
                           </div>
-                          {visit.debt_amount > 0 && (
+                          {(visit.debt_amount ?? 0) > 0 && (
                             <div className="text-red-500 text-xs">
-                              Qarz: {formatCurrency(visit.debt_amount)}
+                              Qarz: {formatCurrency(visit.debt_amount ?? 0)}
                             </div>
                           )}
                         </td>
