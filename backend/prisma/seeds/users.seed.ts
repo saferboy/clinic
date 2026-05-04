@@ -110,6 +110,12 @@ export async function seedUsers() {
     }
   }
 
+  // Sequence'ni MAX(id) ga sozlash, aks holda keyingi INSERT da
+  // "duplicate key value violates unique constraint" xatosi chiqadi.
+  await prisma.$executeRawUnsafe(
+    `SELECT setval(pg_get_serial_sequence('users', 'id'), COALESCE((SELECT MAX(id) FROM users), 1))`,
+  );
+
   console.log(`  ✅ Jami: ${users.length} ta foydalanuvchi\n`);
 
   // Login ma'lumotlarini chiqarish

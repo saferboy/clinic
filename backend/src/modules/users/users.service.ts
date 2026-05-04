@@ -123,6 +123,31 @@ export class UsersService {
     };
   }
 
+  async getStats() {
+    const grouped = await this.prisma.user.groupBy({
+      by: ['role_id'],
+      where: { deleted_at: null },
+      _count: { _all: true },
+    });
+
+    const roleIds = grouped.map(g => g.role_id).filter((id): id is number => id !== null);
+    const roles = await this.prisma.userRole.findMany({
+      where: { id: { in: roleIds } },
+      select: { id: true, name: true },
+    });
+
+    const total = grouped.reduce((sum, g) => sum + g._count._all, 0);
+
+    return {
+      total,
+      byRole: grouped.map(g => ({
+        role_id: g.role_id,
+        role_name: roles.find(r => r.id === g.role_id)?.name ?? null,
+        count: g._count._all,
+      })),
+    };
+  }
+
   async findOne(id: number) {
     const row = await this.prisma.user.findFirst({
       where: { id, deleted_at: null },

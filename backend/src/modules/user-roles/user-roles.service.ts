@@ -6,6 +6,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateUserRoleDto } from './dto/create-user-role.dto';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
+import { GetUserRolesQueryDto } from './dto/get-user-roles-query.dto';
 import { ICurrentUser } from '../../common/interfaces/current-user.interface';
 
 const select = {
@@ -44,10 +45,46 @@ export class UserRolesService {
     });
   }
 
-  async findMany() {
+  async findMany(query: GetUserRolesQueryDto) {
+    const where: any = { deleted_at: null };
+
+    if (query.status) {
+      where.status = query.status;
+    }
+
+    if (query.search) {
+      where.OR = [
+        { name: { contains: query.search, mode: 'insensitive' } },
+        { description: { contains: query.search, mode: 'insensitive' } },
+      ];
+    }
+
+    const skip = (query.page! - 1) * query.limit!;
+    const take = Math.min(query.limit!, 100);
+    const orderBy = { [query.sortBy!]: query.sortOrder! };
+
+    const [data, total] = await Promise.all([
+      this.prisma.userRole.findMany({ where, skip, take, orderBy, select }),
+      this.prisma.userRole.count({ where }),
+    ]);
+
+    return {
+      data,
+      pagination: {
+        page: query.page,
+        limit: take,
+        total,
+        totalPages: Math.ceil(total / take),
+        hasNextPage: skip + take < total,
+        hasPrevPage: query.page! > 1,
+      },
+    };
+  }
+
+  async findAll() {
     return this.prisma.userRole.findMany({
-      where: { deleted_at: null },
-      orderBy: { created_at: 'asc' },
+      where: { deleted_at: null, status: 'ACTIVE' },
+      orderBy: { name: 'asc' },
       select,
     });
   }

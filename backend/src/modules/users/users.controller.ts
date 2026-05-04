@@ -45,6 +45,12 @@ export class UsersController {
     });
   }
 
+  @Get('stats')
+  @ApiOperation({ summary: 'Foydalanuvchilar statistikasi (rollar bo\'yicha jami sonlar)' })
+  getStats() {
+    return this.usersService.getStats();
+  }
+
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.findOne(id);
