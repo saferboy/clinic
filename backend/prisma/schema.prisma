@@ -728,6 +728,23 @@ model VisitRoom {
     @@map("visit_rooms")
 }
 
+model ClinicSettings {
+    id         Int      @id @default(1)
+    name       String   @db.VarChar(200)
+    tin        String?  @db.VarChar(50)
+    address    String?  @db.VarChar(500)
+    phone      String?  @db.VarChar(50)
+    email      String?  @db.VarChar(100)
+    website    String?  @db.VarChar(200)
+    work_start String?  @db.VarChar(10)
+    work_end   String?  @db.VarChar(10)
+    logo_url   String?  @db.VarChar(500)
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
+
+    @@map("clinic_settings")
+}
+
 model VisitService {
     // Primary Key - Unikal identifikator
     id            Int       @id @default(autoincrement())
