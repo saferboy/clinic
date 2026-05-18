@@ -213,7 +213,7 @@ export function ReportsPage() {
             <div className="grid grid-cols-3 gap-4">
               <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-border text-center">
                 <div className="text-xl font-bold text-red-600">{debtClients.length}</div>
-                <div className="text-xs text-muted-foreground">Qarzkor mijozlar</div>
+                <div className="text-xs text-muted-foreground">Qarzdor mijozlar</div>
               </div>
               <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-border text-center">
                 <div className="text-xl font-bold text-red-600">
@@ -229,7 +229,7 @@ export function ReportsPage() {
               </div>
             </div>
             <div className="bg-white dark:bg-slate-800 rounded-2xl border border-border overflow-hidden">
-              <div className="p-4 border-b border-border font-medium">Qarzkor mijozlar ro'yxati</div>
+              <div className="p-4 border-b border-border font-medium">Qarzdor mijozlar ro'yxati</div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>

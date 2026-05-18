@@ -23,6 +23,7 @@ import { ClientReportModule } from './modules/reports/client/client-report.modul
 import { ServiceReportModule } from './modules/reports/service/service-report.module';
 import { DoctorPerformanceModule } from './modules/reports/doctor-performance/doctor-performance.module';
 import { DashboardModule } from './modules/reports/dashboard/dashboard.module';
+import { ClinicSettingsModule } from './modules/clinic-settings/clinic-settings.module';
 import { IsUniqueConstraint } from './common/validators/is-unique.validator';
 import { SanitizationInterceptor } from './common/interceptors/sanitization.interceptor';
 
@@ -54,6 +55,7 @@ import { SanitizationInterceptor } from './common/interceptors/sanitization.inte
     ServiceReportModule,
     DoctorPerformanceModule,
     DashboardModule,
+    ClinicSettingsModule,
   ],
   controllers: [AppController],
   providers: [

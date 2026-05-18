@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Save, Building2, User, Bell, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { clinicSettingsApi, ClinicSettings } from '../api/clinic-settings.service';
 import { toast } from 'sonner';
 
 type Tab = 'profile' | 'clinic' | 'notifications';
@@ -75,11 +76,11 @@ export function SettingsPage() {
 
   // Clinic form
   const [clinicForm, setClinicForm] = useState({
-    name: 'MedClinic', address: 'Toshkent, Yunusobod tumani',
-    phone: '+998712345678', email: 'info@medclinic.uz',
-    workStart: '08:00', workEnd: '18:00',
-    website: 'www.medclinic.uz', tin: '123456789'
+    name: '', address: '', phone: '', email: '',
+    work_start: '08:00', work_end: '18:00',
+    website: '', tin: '',
   });
+  const [clinicLoading, setClinicLoading] = useState(false);
 
   // Notifications
   const [notifications, setNotifications] = useState({
@@ -91,7 +92,7 @@ export function SettingsPage() {
     emailNotif: true,
   });
 
-  // Current user o'zgarganda form ni yangilash (faqat birinchi marta)
+  // Current user o'zgarganda profile form yangilash
   const isInitialized = useRef(false);
   useEffect(() => {
     if (currentUser && !isInitialized.current) {
@@ -105,6 +106,25 @@ export function SettingsPage() {
       });
     }
   }, [currentUser]);
+
+  // Klinika sozlamalarini yuklash
+  useEffect(() => {
+    clinicSettingsApi.get().then((res: any) => {
+      const d: ClinicSettings = res?.data;
+      if (d) {
+        setClinicForm({
+          name: d.name || '',
+          address: d.address || '',
+          phone: d.phone || '',
+          email: d.email || '',
+          work_start: d.work_start || '08:00',
+          work_end: d.work_end || '18:00',
+          website: d.website || '',
+          tin: d.tin || '',
+        });
+      }
+    }).catch(() => {});
+  }, []);
 
   // Profil saqlash
   const handleSave = async () => {
@@ -180,6 +200,27 @@ export function SettingsPage() {
         toast.error(errorMessage);
       } finally {
         setIsSaving(false);
+      }
+    } else if (activeTab === 'clinic') {
+      setClinicLoading(true);
+      try {
+        const res = await clinicSettingsApi.update({
+          name: clinicForm.name,
+          tin: clinicForm.tin || undefined,
+          address: clinicForm.address || undefined,
+          phone: clinicForm.phone || undefined,
+          email: clinicForm.email || undefined,
+          website: clinicForm.website || undefined,
+          work_start: clinicForm.work_start || undefined,
+          work_end: clinicForm.work_end || undefined,
+        }) as any;
+        if (res?.success) {
+          toast.success('Klinika sozlamalari saqlandi');
+        }
+      } catch (e: any) {
+        toast.error(e?.message || 'Xatolik yuz berdi');
+      } finally {
+        setClinicLoading(false);
       }
     } else {
       toast.info('Bu sozlama hozircha ishga tushmagan');
@@ -301,23 +342,23 @@ export function SettingsPage() {
         return (
           <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FormField label="Klinika nomi" value={clinicForm.name} onChange={v => setClinicForm({...clinicForm, name: v})} />
-              <FormField label="INN" value={clinicForm.tin} onChange={v => setClinicForm({...clinicForm, tin: v})} />
+              <FormField label="Klinika nomi *" value={clinicForm.name} onChange={v => setClinicForm({...clinicForm, name: v})} placeholder="MedClinic" />
+              <FormField label="INN" value={clinicForm.tin} onChange={v => setClinicForm({...clinicForm, tin: v})} placeholder="123456789" />
               <div className="sm:col-span-2">
-                <FormField label="Manzil" value={clinicForm.address} onChange={v => setClinicForm({...clinicForm, address: v})} />
+                <FormField label="Manzil" value={clinicForm.address} onChange={v => setClinicForm({...clinicForm, address: v})} placeholder="Toshkent, Yunusobod tumani" />
               </div>
-              <FormField label="Telefon" value={clinicForm.phone} onChange={v => setClinicForm({...clinicForm, phone: v})} />
-              <FormField label="Email" type="email" value={clinicForm.email} onChange={v => setClinicForm({...clinicForm, email: v})} />
-              <FormField label="Veb-sayt" value={clinicForm.website} onChange={v => setClinicForm({...clinicForm, website: v})} />
+              <FormField label="Telefon" value={clinicForm.phone} onChange={v => setClinicForm({...clinicForm, phone: v})} placeholder="+998712345678" />
+              <FormField label="Email" type="email" value={clinicForm.email} onChange={v => setClinicForm({...clinicForm, email: v})} placeholder="info@medclinic.uz" />
+              <FormField label="Veb-sayt" value={clinicForm.website} onChange={v => setClinicForm({...clinicForm, website: v})} placeholder="www.medclinic.uz" />
               <div className="flex gap-3">
                 <div className="flex-1">
                   <label className="text-sm font-medium mb-1 block">Ish boshlanishi</label>
-                  <input type="time" value={clinicForm.workStart} onChange={e => setClinicForm({...clinicForm, workStart: e.target.value})}
+                  <input type="time" value={clinicForm.work_start} onChange={e => setClinicForm({...clinicForm, work_start: e.target.value})}
                     className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
                 <div className="flex-1">
                   <label className="text-sm font-medium mb-1 block">Ish tugashi</label>
-                  <input type="time" value={clinicForm.workEnd} onChange={e => setClinicForm({...clinicForm, workEnd: e.target.value})}
+                  <input type="time" value={clinicForm.work_end} onChange={e => setClinicForm({...clinicForm, work_end: e.target.value})}
                     className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
               </div>
@@ -327,13 +368,12 @@ export function SettingsPage() {
 
       case 'notifications':
         return (
-          <div className="space-y-0">
-            <Toggle label="Tashrif eslatmasi" desc="Tashrif vaqtidan 1 soat oldin xabar" checked={notifications.visitReminder} onChange={v => setNotifications({...notifications, visitReminder: v})} />
-            <Toggle label="Yangi mijoz" desc="Yangi mijoz qo'shilganda xabar" checked={notifications.newClient} onChange={v => setNotifications({...notifications, newClient: v})} />
-            <Toggle label="To'lov bildirishnomasi" desc="Yangi to'lov qabul qilinganda" checked={notifications.paymentAlert} onChange={v => setNotifications({...notifications, paymentAlert: v})} />
-            <Toggle label="Qarz ogohlantirish" desc="Qarzkor mijozlar haqida kunlik xabar" checked={notifications.debtAlert} onChange={v => setNotifications({...notifications, debtAlert: v})} />
-            <Toggle label="SMS bildirishnomalar" desc="Mobil telefonga xabar yuborish" checked={notifications.smsNotif} onChange={v => setNotifications({...notifications, smsNotif: v})} />
-            <Toggle label="Email bildirishnomalar" desc="Email orqali kunlik hisobot" checked={notifications.emailNotif} onChange={v => setNotifications({...notifications, emailNotif: v})} />
+          <div className="flex flex-col items-center justify-center py-12 text-center gap-3">
+            <Bell size={40} className="text-muted-foreground opacity-40" />
+            <div className="font-medium text-foreground">Tez kunda</div>
+            <div className="text-sm text-muted-foreground max-w-xs">
+              SMS, Telegram va Email bildirishnomalar tizimi ishlab chiqilmoqda
+            </div>
           </div>
         );
     }
@@ -372,10 +412,10 @@ export function SettingsPage() {
             <div className="mt-6 pt-4 border-t border-border flex items-center gap-3">
               <button
                 onClick={handleSave}
-                disabled={isSaving}
+                disabled={isSaving || clinicLoading}
                 className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm hover:bg-blue-700 transition-colors font-medium disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {isSaving ? (
+                {(isSaving || clinicLoading) ? (
                   <>
                     <Loader2 size={16} className="animate-spin" />
                     <span>Saqlanmoqda...</span>

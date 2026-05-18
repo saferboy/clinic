@@ -1,4 +1,4 @@
-import { Bell, Search, Moon, Sun, Menu, ChevronDown } from 'lucide-react';
+import { Bell, Search, Moon, Sun, Menu, ChevronDown, Clock } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { getStatusLabel } from '../../mockData';
@@ -12,11 +12,6 @@ interface HeaderProps {
   onDarkModeToggle: () => void;
 }
 
-const notifications = [
-  { id: 1, text: "Bahodir Yuldashev bugun 10:00 da", type: 'visit', time: '5 daqiqa oldin' },
-  { id: 2, text: "Sherzod Ergashev - 200,000 so'm qarz", type: 'debt', time: '1 soat oldin' },
-  { id: 3, text: "5-xona ta'mirga chiqdi", type: 'room', time: '2 soat oldin' },
-];
 
 export function Header({ title, subtitle, onMenuClick, darkMode, onDarkModeToggle }: HeaderProps) {
   const { currentUser, logout } = useAuth();
@@ -62,22 +57,19 @@ export function Header({ title, subtitle, onMenuClick, darkMode, onDarkModeToggl
             className="p-2 rounded-lg hover:bg-accent transition-colors text-muted-foreground relative"
           >
             <Bell size={18} />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
           </button>
 
           {showNotif && (
-            <div className="absolute right-0 top-12 w-80 bg-background border border-border rounded-xl shadow-xl z-50 overflow-hidden">
+            <div className="absolute right-0 top-12 w-72 bg-background border border-border rounded-xl shadow-xl z-50 overflow-hidden">
               <div className="p-3 border-b border-border">
                 <h3 className="text-sm font-medium">Bildirishnomalar</h3>
               </div>
-              {notifications.map(n => (
-                <div key={n.id} className="p-3 border-b border-border hover:bg-accent cursor-pointer transition-colors">
-                  <p className="text-sm">{n.text}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{n.time}</p>
-                </div>
-              ))}
-              <div className="p-2 text-center">
-                <button className="text-xs text-blue-600 hover:underline">Hammasini ko'rish</button>
+              <div className="flex flex-col items-center justify-center py-8 gap-2 text-center px-4">
+                <Clock size={28} className="text-muted-foreground opacity-40" />
+                <p className="text-sm font-medium text-foreground">Tez kunda</p>
+                <p className="text-xs text-muted-foreground">
+                  SMS, Telegram va Email bildirishnomalar tizimi ishlab chiqilmoqda
+                </p>
               </div>
             </div>
           )}
