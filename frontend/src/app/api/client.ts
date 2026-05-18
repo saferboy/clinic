@@ -5,7 +5,8 @@ interface ApiRequestOptions {
   body?: unknown;
   headers?: Record<string, string>;
   requiresAuth?: boolean;
-  skipAuthRefresh?: boolean; // Refresh token doirasida refresh qilmaslik uchun
+  skipAuthRefresh?: boolean;
+  signal?: AbortSignal;
 }
 
 // Refresh token jarayonini boshqarish uchun flag
@@ -108,6 +109,7 @@ export class ApiClient {
       headers = {},
       requiresAuth = false,
       skipAuthRefresh = false,
+      signal,
     } = options;
 
     const url = `${this.baseUrl}${endpoint}`;
@@ -121,6 +123,7 @@ export class ApiClient {
       method,
       headers: requestHeaders,
       body: body ? JSON.stringify(body) : undefined,
+      signal,
     };
 
     try {
@@ -174,14 +177,15 @@ export class ApiClient {
       }
 
       return await response.json();
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.name === 'AbortError') throw error;
       console.error(`API request failed: ${method} ${endpoint}`, error);
       throw error;
     }
   }
 
-  get<T>(endpoint: string, requiresAuth: boolean = false) {
-    return this.request<T>(endpoint, { method: 'GET', requiresAuth });
+  get<T>(endpoint: string, requiresAuth: boolean = false, signal?: AbortSignal) {
+    return this.request<T>(endpoint, { method: 'GET', requiresAuth, signal });
   }
 
   post<T>(endpoint: string, body?: unknown, requiresAuth: boolean = false) {

@@ -1,8 +1,39 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Plus, Edit, Trash2, X, Shield, Key, Loader2, Search, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Plus, Edit, Trash2, X, Shield, Key, Loader2, Search, ChevronLeft, ChevronRight, Filter, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
-import { usersService } from '../api/users.service';
+import { usersService, type UsersStats } from '../api/users.service';
 import type { FrontendUser } from '../api/users.types';
+import { userRolesApi } from '../api/user-roles.service';
+
+type RoleWithPermissions = { id: number; name: string; permissions: Record<string, any> | null };
+
+const PERMISSION_RESOURCES: { key: string; label: string }[] = [
+  { key: 'client',       label: 'Mijozlar' },
+  { key: 'client-group', label: 'Mijoz guruhlari' },
+  { key: 'visit',        label: 'Tashriflar' },
+  { key: 'payment',      label: "To'lovlar" },
+  { key: 'service',      label: 'Xizmatlar' },
+  { key: 'room',         label: 'Xonalar' },
+  { key: 'department',   label: "Bo'limlar" },
+  { key: 'report',       label: 'Hisobotlar' },
+  { key: 'user',         label: 'Foydalanuvchilar' },
+  { key: 'role',         label: 'Rollar' },
+  { key: 'source',       label: 'Manbalar' },
+  { key: 'referral',     label: 'Tavsiyalar' },
+];
+
+const ACTION_LETTERS: { key: 'create' | 'read' | 'update' | 'delete'; letter: string; title: string }[] = [
+  { key: 'create', letter: 'Q',  title: "Qo'shish" },
+  { key: 'read',   letter: 'K',  title: "Ko'rish" },
+  { key: 'update', letter: 'T',  title: 'Tahrirlash' },
+  { key: 'delete', letter: "O'", title: "O'chirish" },
+];
+
+function getActionGranted(perms: Record<string, any> | null | undefined, resource: string, action: string): boolean {
+  if (!perms) return false;
+  if (perms.all === true) return true;
+  return perms[resource]?.[action] === true;
+}
 
 // Role type va mapping
 type UserRole = 'admin' | 'doctor' | 'nurse' | 'receptionist' | 'accountant';
@@ -47,19 +78,6 @@ const roleAvatarColors: Record<UserRole, string> = {
   accountant: 'bg-amber-500',
 };
 
-// Permission matrix
-const permissions: Record<string, UserRole[]> = {
-  'Dashboard ko\'rish': ['admin', 'doctor', 'nurse', 'receptionist', 'accountant'],
-  'Mijozlar boshqarish': ['admin', 'doctor', 'receptionist', 'accountant'],
-  'Tashriflar boshqarish': ['admin', 'doctor', 'nurse', 'receptionist', 'accountant'],
-  "To'lovlar boshqarish": ['admin', 'receptionist', 'accountant'],
-  'Xizmatlar boshqarish': ['admin', 'doctor', 'accountant'],
-  'Xonalar boshqarish': ['admin', 'doctor', 'nurse', 'receptionist'],
-  'Hisobotlar ko\'rish': ['admin', 'doctor', 'receptionist', 'accountant'],
-  'Sozlamalar': ['admin'],
-  'Foydalanuvchilar': ['admin'],
-};
-
 const PAGE_SIZE_OPTIONS = [5, 10, 20, 50];
 
 // ---------- MODAL COMPONENT ----------
@@ -67,48 +85,69 @@ function UserModal({ user, roles, onClose, onSave }: {
   user: FrontendUser | null;
   roles: { id: number; name: string }[];
   onClose: () => void;
-  onSave: (data: { login: string; password?: string; full_name?: string; phone?: string; email?: string; role_id?: number; status?: 'ACTIVE' | 'INACTIVE' }) => void;
+  onSave: (data: { login: string; password?: string; full_name?: string; phone?: string; role_id?: number; status?: 'ACTIVE' | 'INACTIVE' }) => Promise<void>;
 }) {
   const [form, setForm] = useState({
     login: user?.login || '',
     full_name: user?.fullName || '',
-    email: user?.email || '',
-    phone: user?.phone || '',
+    phone: user?.phone || '+998',
     role_id: user?.role?.id ?? (roles[0]?.id ?? 0),
     password: '',
     status: user?.status || 'ACTIVE' as 'ACTIVE' | 'INACTIVE',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showPassword, setShowPassword] = useState(false);
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
-    if (!form.login.trim()) newErrors.login = 'Login majburiy';
-    if (!user && !form.password.trim()) newErrors.password = 'Parol majburiy';
-    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      newErrors.email = 'Email noto\'g\'ri formatda';
-    }
+    if (!form.login.trim()) newErrors.login = 'Iltimos, loginni kiriting';
+    if (!form.full_name.trim()) newErrors.full_name = 'Iltimos, to\'liq ismni kiriting';
+    if (!form.phone.trim() || form.phone.trim() === '+998') newErrors.phone = 'Iltimos, telefon raqamini kiriting';
+    if (!user && !form.password.trim()) newErrors.password = 'Iltimos, parolni kiriting';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = () => {
-    if (validate()) {
-      onSave({
+  const handleSubmit = async () => {
+    if (!validate()) return;
+    try {
+      await onSave({
         login: form.login.trim(),
         ...(form.password.trim() && { password: form.password }),
         ...(form.full_name.trim() && { full_name: form.full_name.trim() }),
         ...(form.phone.trim() && { phone: form.phone.trim() }),
-        ...(form.email.trim() && { email: form.email.trim() }),
         ...(form.role_id && { role_id: form.role_id }),
         status: form.status,
       });
+    } catch (err: any) {
+      // Backend validation xatolarini tegishli inputlarga joylash
+      const backendErrors: Record<string, string[]> = err?.data?.errors || err?.errors || {};
+      if (Object.keys(backendErrors).length > 0) {
+        const fieldMessages: Record<string, string> = {
+          phone: 'Telefon raqami noto\'g\'ri. Masalan: +998901234567',
+          login: 'Bu login allaqachon band',
+          password: 'Parol talablarga javob bermaydi',
+          full_name: 'To\'liq ism noto\'g\'ri',
+        };
+        const newErrors: Record<string, string> = {};
+        Object.keys(backendErrors).forEach(field => {
+          newErrors[field] = fieldMessages[field] || backendErrors[field][0];
+        });
+        setErrors(prev => ({ ...prev, ...newErrors }));
+      }
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-background rounded-2xl shadow-2xl w-full max-w-md">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-background rounded-2xl shadow-2xl ring-1 ring-border/50 w-full max-w-md"
+        onClick={e => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between p-6 border-b border-border">
           <h2 className="text-lg font-semibold">{user?.id ? 'Foydalanuvchini tahrirlash' : 'Yangi foydalanuvchi'}</h2>
           <button onClick={onClose} className="p-1.5 hover:bg-muted rounded-lg"><X size={18} /></button>
@@ -123,23 +162,18 @@ function UserModal({ user, roles, onClose, onSave }: {
               {errors.login && <p className="text-xs text-red-500 mt-1">{errors.login}</p>}
             </div>
             <div>
-              <label className="text-sm font-medium mb-1 block">To'liq ism</label>
+              <label className="text-sm font-medium mb-1 block">To'liq ism *</label>
               <input value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={`w-full px-3 py-2 rounded-xl border ${errors.full_name ? 'border-red-500' : 'border-border'} bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500`}
                 placeholder="Ism familiya" />
+              {errors.full_name && <p className="text-xs text-red-500 mt-1">{errors.full_name}</p>}
             </div>
             <div>
-              <label className="text-sm font-medium mb-1 block">Telefon</label>
+              <label className="text-sm font-medium mb-1 block">Telefon *</label>
               <input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={`w-full px-3 py-2 rounded-xl border ${errors.phone ? 'border-red-500' : 'border-border'} bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500`}
                 placeholder="+998901234567" />
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-1 block">Email</label>
-              <input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
-                className={`w-full px-3 py-2 rounded-xl border ${errors.email ? 'border-red-500' : 'border-border'} bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                placeholder="email@clinic.uz" />
-              {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
+              {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone}</p>}
             </div>
             <div>
               <label className="text-sm font-medium mb-1 block">Rol</label>
@@ -153,9 +187,23 @@ function UserModal({ user, roles, onClose, onSave }: {
             {!user && (
               <div className="col-span-2">
                 <label className="text-sm font-medium mb-1 block">Parol *</label>
-                <input type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })}
-                  className={`w-full px-3 py-2 rounded-xl border ${errors.password ? 'border-red-500' : 'border-border'} bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                  placeholder="Boshlang'ich parol" />
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={form.password}
+                    onChange={e => setForm({ ...form, password: e.target.value })}
+                    className={`w-full px-3 py-2 pr-10 rounded-xl border ${errors.password ? 'border-red-500' : 'border-border'} bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    placeholder="Boshlang'ich parol"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(v => !v)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                    title={showPassword ? 'Parolni yashirish' : "Parolni ko'rsatish"}
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
                 {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password}</p>}
               </div>
             )}
@@ -294,7 +342,7 @@ function FilterBar({
           <input
             value={search}
             onChange={e => onSearchChange(e.target.value)}
-            placeholder="Ism, login, email, telefon bo'yicha qidirish..."
+            placeholder="Ism, login, telefon bo'yicha qidirish..."
             className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-border bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
@@ -364,6 +412,7 @@ function PasswordResetModal({ user, onClose, onReset }: {
   const [newPassword, setNewPassword] = useState('');
   const [useCustom, setUseCustom] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleReset = async () => {
     setLoading(true);
@@ -418,13 +467,23 @@ function PasswordResetModal({ user, onClose, onReset }: {
           {useCustom && (
             <div>
               <label className="text-sm font-medium mb-1 block">Yangi parol</label>
-              <input
-                type="password"
-                value={newPassword}
-                onChange={e => setNewPassword(e.target.value)}
-                placeholder="Kamida 4 ta belgi"
-                className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  placeholder="Kamida 4 ta belgi"
+                  className="w-full px-3 py-2.5 pr-10 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(v => !v)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                  title={showPassword ? 'Parolni yashirish' : "Parolni ko'rsatish"}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
           )}
 
@@ -452,13 +511,14 @@ function PasswordResetModal({ user, onClose, onReset }: {
 // ---------- MAIN PAGE ----------
 export function UsersPage() {
   const [users, setUsers] = useState<FrontendUser[]>([]);
-  const [roles, setRoles] = useState<{ id: number; name: string }[]>([]);
+  const [roles, setRoles] = useState<RoleWithPermissions[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [editUser, setEditUser] = useState<FrontendUser | null>(null);
   const [resetPasswordUser, setResetPasswordUser] = useState<FrontendUser | null>(null);
   const [activeView, setActiveView] = useState<'list' | 'permissions'>('list');
+  const [stats, setStats] = useState<UsersStats | null>(null);
 
   // Pagination & filter state
   const [page, setPage] = useState(1);
@@ -469,8 +529,16 @@ export function UsersPage() {
   const [totalPages, setTotalPages] = useState(0);
   const [total, setTotal] = useState(0);
 
+  // Har bir loadUsers chaqiruvining so'rovini abort qilish uchun ref
+  const loadUsersAbortRef = useRef<AbortController | null>(null);
+
   // User'larni yuklash
   const loadUsers = useCallback(async () => {
+    // Avvalgi in-flight so'rovni bekor qilish
+    if (loadUsersAbortRef.current) loadUsersAbortRef.current.abort();
+    loadUsersAbortRef.current = new AbortController();
+    const signal = loadUsersAbortRef.current.signal;
+
     try {
       setLoading(true);
       setError(null);
@@ -480,27 +548,38 @@ export function UsersPage() {
         search: search || undefined,
         role_id: filterRole,
         status: filterStatus,
-      });
+      }, signal);
       setUsers(data);
       setTotalPages(meta.totalPages);
       setTotal(meta.total);
     } catch (err: any) {
+      if (err?.name === 'AbortError') return; // bekor qilingan so'rov — e'tibor bermaslik
       setError(err.message || 'User\'larni yuklashda xatolik');
     } finally {
-      setLoading(false);
+      if (!signal.aborted) setLoading(false);
     }
   }, [page, limit, search, filterRole, filterStatus]);
 
-  // Rollarni yuklash
+  // Rollarni yuklash (matritsa uchun permissions ham kerak)
   const loadRoles = useCallback(async () => {
     try {
-      const { api } = await import('../api/client');
-      const rolesData = await api.get<any[]>('/user-roles', true);
-      if (Array.isArray(rolesData)) {
-        setRoles(rolesData.map((r: any) => ({ id: r.id, name: r.name })));
+      const response = await userRolesApi.findAll();
+      const list = (response as any)?.data ?? response;
+      if (Array.isArray(list)) {
+        setRoles(list.map((r: any) => ({ id: r.id, name: r.name, permissions: r.permissions ?? null })));
       }
     } catch (err) {
       console.error('Rollarni yuklashda xatolik:', err);
+    }
+  }, []);
+
+  // Statistikani yuklash (filterga bog'liq emas — jami sonlar)
+  const loadStats = useCallback(async () => {
+    try {
+      const data = await usersService.getStats();
+      setStats(data);
+    } catch (err) {
+      console.error('Statistikani yuklashda xatolik:', err);
     }
   }, []);
 
@@ -510,21 +589,27 @@ export function UsersPage() {
 
   useEffect(() => {
     loadRoles();
-  }, [loadRoles]);
+    loadStats();
+  }, [loadRoles, loadStats]);
 
-  // Search debounce
+  // Search debounce — taymer ref'da, kerak bo'lganda tashqaridan ham bekor qilish mumkin
   const [searchInput, setSearchInput] = useState(search);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    const timer = setTimeout(() => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
       setSearch(searchInput);
       setPage(1);
     }, 400);
-    return () => clearTimeout(timer);
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    };
   }, [searchInput]);
 
   // Saqlash (yaratish yoki yangilash)
-  const handleSave = async (data: { login: string; password?: string; full_name?: string; phone?: string; email?: string; role_id?: number; status?: 'ACTIVE' | 'INACTIVE' }) => {
+  const handleSave = async (data: { login: string; password?: string; full_name?: string; phone?: string; role_id?: number; status?: 'ACTIVE' | 'INACTIVE' }) => {
     try {
+      const isCreate = !editUser;
       if (editUser) {
         await usersService.update(editUser.id, data);
         toast.success('Foydalanuvchi muvaffaqiyatli yangilandi');
@@ -534,10 +619,25 @@ export function UsersPage() {
       }
       setShowModal(false);
       setEditUser(null);
-      await loadUsers();
+
+      // Yangi foydalanuvchi yaratilganda — filterlarni tozalab, uni ro'yxatda ko'rsatamiz.
+      // Aks holda joriy filter (masalan, search='root') yangi userni ko'rsatmasligi mumkin.
+      if (isCreate) {
+        setSearchInput('');
+        setSearch('');
+        setFilterRole(undefined);
+        setFilterStatus(undefined);
+        setPage(1);
+      }
+
+      await Promise.all([loadUsers(), loadStats()]);
     } catch (err: any) {
-      const message = err.message || 'Saqlashda xatolik yuz berdi';
-      toast.error(message);
+      // Backend validation xatosi bo'lsa — modal ichiga qaytaramiz (toast emas)
+      const hasFieldErrors = err?.data?.errors && Object.keys(err.data.errors).length > 0;
+      if (!hasFieldErrors) {
+        toast.error(err.message || 'Saqlashda xatolik yuz berdi');
+      }
+      throw err; // modal ichidagi handleSubmit ushlab oladi
     }
   };
 
@@ -547,7 +647,7 @@ export function UsersPage() {
       try {
         await usersService.delete(id);
         toast.success('Foydalanuvchi muvaffaqiyatli o\'chirildi');
-        await loadUsers();
+        await Promise.all([loadUsers(), loadStats()]);
       } catch (err: any) {
         toast.error(err.message || 'O\'chirishda xatolik yuz berdi');
       }
@@ -619,7 +719,14 @@ export function UsersPage() {
           </button>
         </div>
         <button
-          onClick={() => { setEditUser(null); setShowModal(true); }}
+          onClick={() => {
+            if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+            if (loadUsersAbortRef.current) loadUsersAbortRef.current.abort();
+            setSearchInput('');
+            setSearch('');
+            setEditUser(null);
+            setShowModal(true);
+          }}
           className="px-4 py-2.5 rounded-xl bg-blue-600 text-white text-sm hover:bg-blue-700 transition-colors flex items-center gap-2 font-medium"
         >
           <Plus size={16} />
@@ -629,16 +736,22 @@ export function UsersPage() {
 
       {activeView === 'list' ? (
         <>
-          {/* Role stats */}
+          {/* Role stats — filterdan mustaqil, jami sonlar */}
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-            {(['admin', 'doctor', 'nurse', 'receptionist', 'accountant'] as UserRole[]).map(role => (
-              <div key={role} className="bg-white dark:bg-slate-800 rounded-xl p-3 border border-border text-center">
-                <div className={`text-lg font-bold ${roleColors[role].split(' ')[1]}`}>
-                  {users.filter(u => roleName(u) === role).length}
+            {(['admin', 'doctor', 'nurse', 'receptionist', 'accountant'] as UserRole[]).map(role => {
+              const count = stats?.byRole.reduce((sum, r) => {
+                const fkey = r.role_name ? backendRoleToFrontend[r.role_name] : undefined;
+                return fkey === role ? sum + r.count : sum;
+              }, 0) ?? 0;
+              return (
+                <div key={role} className="bg-white dark:bg-slate-800 rounded-xl p-3 border border-border text-center">
+                  <div className={`text-lg font-bold ${roleColors[role].split(' ')[1]}`}>
+                    {count}
+                  </div>
+                  <div className="text-xs text-muted-foreground">{roleLabels[role]}</div>
                 </div>
-                <div className="text-xs text-muted-foreground">{roleLabels[role]}</div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Filters */}
@@ -732,37 +845,60 @@ export function UsersPage() {
         <div className="bg-white dark:bg-slate-800 rounded-2xl border border-border shadow-sm overflow-hidden">
           <div className="p-4 border-b border-border">
             <h3 className="font-semibold text-foreground">Ruxsatlar matritsasi</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">Har bir rol uchun ruxsatlar</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Har bir rol uchun resurslar bo'yicha ruxsatlar (Q — Qo'shish, K — Ko'rish, T — Tahrirlash, O' — O'chirish)
+            </p>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/30">
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground w-48">Ruxsat</th>
-                  {(['admin', 'doctor', 'nurse', 'receptionist', 'accountant'] as UserRole[]).map(role => (
-                    <th key={role} className="px-4 py-3 text-center text-xs font-medium text-muted-foreground">
-                      <span className={`px-2 py-0.5 rounded-full ${roleColors[role]}`}>{roleLabels[role]}</span>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {Object.entries(permissions).map(([perm, roleList]) => (
-                  <tr key={perm} className="border-b border-border last:border-0 hover:bg-muted/20">
-                    <td className="px-4 py-3 text-sm text-foreground">{perm}</td>
-                    {(['admin', 'doctor', 'nurse', 'receptionist', 'accountant'] as UserRole[]).map(role => (
-                      <td key={role} className="px-4 py-3 text-center">
-                        {roleList.includes(role) ? (
-                          <span className="text-green-600 text-base">✓</span>
-                        ) : (
-                          <span className="text-muted-foreground text-base">—</span>
-                        )}
-                      </td>
-                    ))}
+            {roles.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground text-sm">Rollar topilmadi</div>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/30">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground w-44 sticky left-0 bg-muted/30">Resurs</th>
+                    {roles.map(role => {
+                      const frontendKey = backendRoleToFrontend[role.name];
+                      const colorClass = frontendKey ? roleColors[frontendKey] : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400';
+                      return (
+                        <th key={role.id} className="px-3 py-3 text-center text-xs font-medium text-muted-foreground min-w-[120px]">
+                          <span className={`px-2 py-0.5 rounded-full whitespace-nowrap ${colorClass}`}>{role.name}</span>
+                        </th>
+                      );
+                    })}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {PERMISSION_RESOURCES.map(res => (
+                    <tr key={res.key} className="border-b border-border last:border-0 hover:bg-muted/20">
+                      <td className="px-4 py-3 text-sm text-foreground font-medium sticky left-0 bg-white dark:bg-slate-800">{res.label}</td>
+                      {roles.map(role => (
+                        <td key={role.id} className="px-3 py-3 text-center">
+                          <div className="inline-flex gap-1 font-mono text-xs">
+                            {ACTION_LETTERS.map(a => {
+                              const granted = getActionGranted(role.permissions, res.key, a.key);
+                              return (
+                                <span
+                                  key={a.key}
+                                  title={a.title}
+                                  className={`inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded ${
+                                    granted
+                                      ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 font-semibold'
+                                      : 'bg-muted text-muted-foreground/40'
+                                  }`}
+                                >
+                                  {a.letter}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       )}

@@ -13,6 +13,7 @@ import { DepartmentsPage } from './pages/DepartmentsPage';
 import { ReportsPage } from './pages/ReportsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { UsersPage } from './pages/UsersPage';
+import { UserRolesPage } from './pages/UserRolesPage';
 
 export const router = createBrowserRouter([
   {
@@ -43,6 +44,7 @@ export const router = createBrowserRouter([
       { path: 'reports', Component: ReportsPage },
       { path: 'settings', Component: SettingsPage },
       { path: 'users', Component: UsersPage },
+      { path: 'user-roles', Component: UserRolesPage },
     ],
   },
   {

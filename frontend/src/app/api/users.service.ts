@@ -6,6 +6,12 @@ import type {
   FrontendUser,
 } from './users.types';
 
+// Stats response
+export interface UsersStats {
+  total: number;
+  byRole: { role_id: number | null; role_name: string | null; count: number }[];
+}
+
 // Pagination params
 export interface UsersQueryParams {
   page?: number;
@@ -46,7 +52,7 @@ export const usersService = {
   /**
    * Barcha user'larni olish (pagination bilan)
    */
-  async getAll(params?: UsersQueryParams): Promise<{ users: FrontendUser[]; meta: UsersPaginatedResponse['meta'] }> {
+  async getAll(params?: UsersQueryParams, signal?: AbortSignal): Promise<{ users: FrontendUser[]; meta: UsersPaginatedResponse['meta'] }> {
     const queryParams = new URLSearchParams();
     if (params?.page) queryParams.set('page', String(params.page));
     if (params?.limit) queryParams.set('limit', String(params.limit));
@@ -57,7 +63,7 @@ export const usersService = {
     if (params?.sortOrder) queryParams.set('sortOrder', params.sortOrder);
 
     const queryString = queryParams.toString();
-    const response = await api.get<any>(`/users${queryString ? `?${queryString}` : ''}`, true);
+    const response = await api.get<any>(`/users${queryString ? `?${queryString}` : ''}`, true, signal);
     const usersData = response?.data?.data || response?.data || [];
     return {
       users: Array.isArray(usersData) ? usersData.map((u: any) => mapBackendToFrontend(u)).filter(Boolean) : [],
@@ -111,5 +117,13 @@ export const usersService = {
    */
   async resetPassword(id: number, newPassword?: string): Promise<{ tempPassword: string }> {
     return api.post<{ tempPassword: string }>(`/users/${id}/reset-password`, newPassword ? { newPassword } : undefined, true);
+  },
+
+  /**
+   * Rollar bo'yicha foydalanuvchilar statistikasi (filterga bog'liq emas)
+   */
+  async getStats(): Promise<UsersStats> {
+    const response = await api.get<any>('/users/stats', true);
+    return response?.data ?? response;
   },
 };

@@ -161,9 +161,10 @@ export function hasAccess(roleName: string | undefined, page: string): boolean {
     services: ['SuperAdmin', 'Admin', 'Doctor', 'Accountant'],
     rooms: ['SuperAdmin', 'Admin', 'Doctor', 'Nurse', 'Receptionist'],
     departments: ['SuperAdmin', 'Admin'],
-    reports: ['SuperAdmin', 'Admin', 'Doctor', 'Receptionist', 'Accountant'],
-    settings: ['SuperAdmin', 'Admin'],
-    users: ['SuperAdmin', 'Admin'],
+     reports: ['SuperAdmin', 'Admin', 'Doctor', 'Receptionist', 'Accountant'],
+     settings: ['SuperAdmin', 'Admin'],
+     users: ['SuperAdmin', 'Admin'],
+     'user-roles': ['SuperAdmin', 'Admin'],
   };
   
   return access[page]?.includes(role) ?? false;

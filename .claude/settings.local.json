@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(npx ts-node prisma/seeds/fix-sequences.ts)",
+      "Bash(curl -s http://localhost:3000/api/v1/users/stats -o /dev/null -w \"%{http_code}\\\\n\")"
+    ]
+  }
+}

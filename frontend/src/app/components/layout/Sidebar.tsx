@@ -1,8 +1,8 @@
-import { NavLink, useNavigate } from 'react-router';
+import { NavLink, useNavigate, useLocation } from 'react-router';
 import {
   LayoutDashboard, Users, Calendar, CreditCard, BarChart3,
   Settings, UserCog, LogOut, Building2, Stethoscope, ChevronLeft, ChevronRight,
-  BedDouble, Wrench, Menu, X, UsersRound
+  BedDouble, Wrench, X, UsersRound, Shield, ChevronDown
 } from 'lucide-react';
 import { useAuth, hasAccess } from '../../contexts/AuthContext';
 import { getStatusLabel } from '../../mockData';
@@ -26,7 +26,6 @@ const navItems: NavItem[] = [
   { label: 'Bo\'limlar', path: '/departments', icon: <Wrench size={20} />, page: 'departments' },
   { label: 'Hisobotlar', path: '/reports', icon: <BarChart3 size={20} />, page: 'reports' },
   { label: 'Sozlamalar', path: '/settings', icon: <Settings size={20} />, page: 'settings' },
-  { label: 'Foydalanuvchilar', path: '/users', icon: <UserCog size={20} />, page: 'users' },
 ];
 
 const roleColors: Record<string, string> = {
@@ -54,6 +53,10 @@ interface SidebarProps {
 export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarProps) {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const isUsersActive = location.pathname === '/users' || location.pathname === '/user-roles';
+  const [usersOpen, setUsersOpen] = useState(isUsersActive);
 
   const handleLogout = () => {
     logout();
@@ -63,6 +66,9 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: Side
   const filteredNav = navItems.filter(item =>
     currentUser ? hasAccess(currentUser.role?.name, item.page) : false
   );
+
+  const canSeeUsers = currentUser ? hasAccess(currentUser.role?.name, 'users') : false;
+  const canSeeRoles = currentUser ? hasAccess(currentUser.role?.name, 'user-roles') : false;
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
@@ -99,6 +105,70 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: Side
             {!collapsed && <span>{item.label}</span>}
           </NavLink>
         ))}
+
+        {/* Foydalanuvchilar guruhi */}
+        {(canSeeUsers || canSeeRoles) && (
+          <div className="mx-2 mb-0.5">
+            <button
+              onClick={() => !collapsed && setUsersOpen(o => !o)}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm ${
+                isUsersActive
+                  ? 'text-white bg-slate-700/60'
+                  : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'
+              } ${collapsed ? 'justify-center px-2' : ''}`}
+              title={collapsed ? 'Foydalanuvchilar' : undefined}
+            >
+              <span className="flex-shrink-0"><UserCog size={20} /></span>
+              {!collapsed && (
+                <>
+                  <span className="flex-1 text-left">Foydalanuvchilar</span>
+                  <ChevronDown
+                    size={15}
+                    className={`transition-transform ${usersOpen ? 'rotate-180' : ''}`}
+                  />
+                </>
+              )}
+            </button>
+
+            {/* Sub-items */}
+            {!collapsed && usersOpen && (
+              <div className="mt-0.5 ml-3 border-l border-slate-700/50 pl-2 space-y-0.5">
+                {canSeeUsers && (
+                  <NavLink
+                    to="/users"
+                    onClick={onMobileClose}
+                    className={({ isActive }) =>
+                      `flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm ${
+                        isActive
+                          ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
+                          : 'text-slate-400 hover:bg-slate-700/50 hover:text-white'
+                      }`
+                    }
+                  >
+                    <Users size={16} />
+                    <span>Foydalanuvchilar</span>
+                  </NavLink>
+                )}
+                {canSeeRoles && (
+                  <NavLink
+                    to="/user-roles"
+                    onClick={onMobileClose}
+                    className={({ isActive }) =>
+                      `flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm ${
+                        isActive
+                          ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
+                          : 'text-slate-400 hover:bg-slate-700/50 hover:text-white'
+                      }`
+                    }
+                  >
+                    <Shield size={16} />
+                    <span>Rollar</span>
+                  </NavLink>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </nav>
 
       {/* User Profile */}

@@ -1,5 +1,18 @@
 export type UserRole = 'SuperAdmin' | 'Admin' | 'Doctor' | 'Nurse' | 'Receptionist' | 'Accountant';
 
+// UserRole (backend dan)
+export interface BackendUserRole {
+  id: number;
+  name: string;
+  description: string | null;
+  permissions: Record<string, any> | null;
+  status: 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
+  created_at: string;
+  updated_at: string;
+  registered_by: number | null;
+  modified_by: number | null;
+}
+
 export interface User {
   id: number;
   login: string;
@@ -53,12 +66,15 @@ export interface Client {
 export type VisitStatus = 'scheduled' | 'confirmed' | 'in-progress' | 'completed' | 'cancelled' | 'no-show';
 
 export interface Service {
-  id: string;
+  id: number;
   name: string;
-  category: string;
   price: number;
-  duration: number;
-  active: boolean;
+  department_id: number | null;
+  duration_min: number;
+  description: string | null;
+  status: 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
+  department?: { id: number; name: string };
+  _count?: { service_users: number; visit_services: number };
 }
 
 export interface VisitService {
