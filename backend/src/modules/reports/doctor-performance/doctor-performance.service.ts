@@ -180,19 +180,30 @@ export class DoctorPerformanceService {
     };
   }
 
-  async getDoctorRanking(startDate: Date, endDate: Date, limit: number = 10, currentUserId: number, currentUserRole: string) {
-    if (currentUserRole !== 'Admin' && currentUserRole !== 'Accountant') {
-      throw new ForbiddenException('DR_001');
-    }
-
-    const doctors = await this.prisma.user.findMany({
-      where: { role: { name: 'Doctor' }, deleted_at: null },
-      select: { id: true, full_name: true },
+  async getDoctorRanking(startDate: Date, endDate: Date, limit: number = 10) {
+    // Visitlarda doctor_id sifatida ishlatilgan barcha foydalanuvchilarni olamiz
+    const doctorVisitRows = await this.prisma.visit.findMany({
+      where: {
+        visit_date: { gte: startDate, lte: endDate },
+        deleted_at: null,
+        doctor_id: { not: null },
+      },
+      select: { doctor_id: true },
+      distinct: ['doctor_id'],
     });
+
+    const doctorIds = doctorVisitRows.map((v) => v.doctor_id!);
+
+    const doctors = doctorIds.length
+      ? await this.prisma.user.findMany({
+          where: { id: { in: doctorIds }, deleted_at: null },
+          select: { id: true, full_name: true },
+        })
+      : [];
 
     const rankings = await Promise.all(
       doctors.map(async (doctor) => {
-        const performance = await this.getDoctorPerformance(doctor.id, startDate, endDate, currentUserId, currentUserRole);
+        const performance = await this.getDoctorPerformance(doctor.id, startDate, endDate, doctor.id, 'Admin');
         const score = this.calculateDoctorScore(performance);
 
         return {
@@ -226,7 +237,7 @@ export class DoctorPerformanceService {
   }
 
   async exportDoctorPerformance(dto: any): Promise<Buffer> {
-    const performance = await this.getDoctorPerformance(dto.doctorId, new Date(dto.start_date), new Date(dto.end_date), 1, 'Admin');
+    const performance = await this.getDoctorPerformance(dto.doctorId, new Date(dto.start_date + 'T00:00:00'), new Date(dto.end_date + 'T23:59:59.999'), 1, 'Admin');
     return this.generateExcel(performance);
   }
 

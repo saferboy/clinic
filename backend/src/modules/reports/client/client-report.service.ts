@@ -279,8 +279,8 @@ export class ClientReportService {
    * Mijozlar ro'yxati
    */
   async getClientListReport(dto: GetClientReportDto) {
-    const startDate = dto.start_date ? new Date(dto.start_date) : new Date();
-    const endDate = dto.end_date ? new Date(dto.end_date) : new Date();
+    const startDate = new Date((dto.start_date || new Date().toISOString().split('T')[0]) + 'T00:00:00');
+    const endDate = new Date((dto.end_date || new Date().toISOString().split('T')[0]) + 'T23:59:59.999');
     const page = dto.page || 1;
     const limit = dto.limit || 20;
 

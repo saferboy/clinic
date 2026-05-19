@@ -8,8 +8,8 @@ export class ServiceReportService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getServiceReport(dto: GetServiceReportDto) {
-    const startDate = new Date(dto.start_date);
-    const endDate = new Date(dto.end_date);
+    const startDate = new Date(dto.start_date + 'T00:00:00');
+    const endDate = new Date(dto.end_date + 'T23:59:59.999');
 
     const visitServices = await this.prisma.visitService.findMany({
       where: {
@@ -143,8 +143,8 @@ export class ServiceReportService {
   }
 
   async getServiceRanking(dto: GetServiceRankingDto) {
-    const startDate = new Date(dto.start_date);
-    const endDate = new Date(dto.end_date);
+    const startDate = new Date(dto.start_date + 'T00:00:00');
+    const endDate = new Date(dto.end_date + 'T23:59:59.999');
     const limit = dto.limit || 10;
 
     const serviceStats = await this.prisma.visitService.groupBy({
