@@ -15,46 +15,42 @@ import { DoctorPerformanceService } from './doctor-performance.service';
 export class DoctorPerformanceController {
   constructor(private readonly doctorPerformanceService: DoctorPerformanceService) {}
 
-  @Get(':doctorId')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Shifokor ko\'rsatkichlari' })
-  async getPerformance(
-    @Query('doctor_id') doctorId: number,
-    @Query('start_date') startDate: string,
-    @Query('end_date') endDate: string,
-    @Headers('user-id') currentUserId: number,
-    @Headers('user-role') currentUserRole: string,
-  ) {
-    return {
-      success: true,
-      data: await this.doctorPerformanceService.getDoctorPerformance(
-        doctorId,
-        new Date(startDate),
-        new Date(endDate),
-        currentUserId,
-        currentUserRole,
-      ),
-    };
-  }
-
   @Get('ranking')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Shifokorlar reytingi' })
   async getRanking(
     @Query('start_date') startDate: string,
     @Query('end_date') endDate: string,
-    @Query('limit') limit: number = 10,
-    @Headers('user-id') currentUserId: number,
-    @Headers('user-role') currentUserRole: string,
+    @Query('limit') limit: string = '10',
   ) {
     return {
       success: true,
       data: await this.doctorPerformanceService.getDoctorRanking(
-        new Date(startDate),
-        new Date(endDate),
-        limit,
-        currentUserId,
-        currentUserRole,
+        new Date(startDate + 'T00:00:00'),
+        new Date(endDate + 'T23:59:59.999'),
+        parseInt(limit) || 10,
+      ),
+    };
+  }
+
+  @Get(':doctorId')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Shifokor ko\'rsatkichlari' })
+  async getPerformance(
+    @Query('doctor_id') doctorId: string,
+    @Query('start_date') startDate: string,
+    @Query('end_date') endDate: string,
+    @Headers('user-id') currentUserId: string,
+    @Headers('user-role') currentUserRole: string,
+  ) {
+    return {
+      success: true,
+      data: await this.doctorPerformanceService.getDoctorPerformance(
+        parseInt(doctorId),
+        new Date(startDate + 'T00:00:00'),
+        new Date(endDate + 'T23:59:59.999'),
+        parseInt(currentUserId) || 0,
+        currentUserRole || 'Admin',
       ),
     };
   }

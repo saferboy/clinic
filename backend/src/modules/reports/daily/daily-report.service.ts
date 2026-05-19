@@ -100,21 +100,17 @@ export class DailyReportService {
    */
   async getDailyReport(dto: GetDailyReportDto): Promise<DailyReport> {
     // 1. Sanani aniqlash (bugun agar kiritilmasa)
-    const reportDate = dto.date ? new Date(dto.date) : new Date();
-    const dateStr = reportDate.toISOString().split('T')[0];
+    const todayStr = new Date().toISOString().split('T')[0];
+    const dateStr = dto.date || todayStr;
 
-    // 2. Kelajak sanani tekshirish
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (reportDate > today) {
+    // 2. Kelajak sanani tekshirish (string solishtirish — timezone muammosini hal qiladi)
+    if (dateStr > todayStr) {
       throw new BadRequestException('RPT_002');
     }
 
-    // 3. Kun boshi va oxiri
-    const startOfDay = new Date(reportDate);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(reportDate);
-    endOfDay.setHours(23, 59, 59, 999);
+    // 3. Kun boshi va oxiri (local midnight uchun +T00:00:00 qo'shamiz)
+    const startOfDay = new Date(dateStr + 'T00:00:00');
+    const endOfDay = new Date(dateStr + 'T23:59:59.999');
 
     // 4. Barcha metrikalarni parallel hisoblash
     const [
@@ -574,8 +570,8 @@ export class DailyReportService {
    * Kunlik trend (solishtirma)
    */
   async getDailyTrend(date: string, compareDays: number = 7): Promise<DailyTrend> {
-    const currentDate = new Date(date);
-    const previousDate = new Date(date);
+    const currentDate = new Date(date + 'T00:00:00');
+    const previousDate = new Date(date + 'T00:00:00');
     previousDate.setDate(previousDate.getDate() - compareDays);
 
     const currentReport = await this.getDailyReport({ date });
@@ -641,11 +637,8 @@ export class DailyReportService {
       throw new BadRequestException('RPT_003');
     }
 
-    const reportDate = new Date(date);
-    const startOfDay = new Date(reportDate);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(reportDate);
-    endOfDay.setHours(23, 59, 59, 999);
+    const startOfDay = new Date(date + 'T00:00:00');
+    const endOfDay = new Date(date + 'T23:59:59.999');
 
     const visits = await this.prisma.visit.findMany({
       where: {

@@ -99,8 +99,8 @@ export class DebtReportService {
    * Qarzdorlik hisobotini olish
    */
   async getDebtReport(dto: GetDebtReportDto): Promise<DebtReport> {
-    const startDate = new Date(dto.start_date);
-    const endDate = new Date(dto.end_date);
+    const startDate = new Date(dto.start_date + 'T00:00:00');
+    const endDate = new Date(dto.end_date + 'T23:59:59.999');
 
     const debtVisits = await this.prisma.visit.findMany({
       where: {
@@ -389,8 +389,8 @@ export class DebtReportService {
    * Qarzдор mijozlar ro'yxati
    */
   async getDebtClientList(dto: GetDebtClientsDto): Promise<DebtClientList> {
-    const startDate = new Date(dto.start_date);
-    const endDate = new Date(dto.end_date);
+    const startDate = new Date(dto.start_date + 'T00:00:00');
+    const endDate = new Date(dto.end_date + 'T23:59:59.999');
     const page = dto.page || 1;
     const limit = dto.limit || 20;
 
