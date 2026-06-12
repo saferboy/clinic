@@ -231,12 +231,35 @@ npm run seed
 Seed quyidagi ma'lumotlarni yaratadi:
 
 ```bash
-npm run seed:roles      # Rollar (Admin, Doctor, Receptionist, Accountant, Nurse)
-npm run seed:users      # Standart foydalanuvchilar
-npm run seed:regions    # Viloyatlar va tumanlar
-npm run seed:classifiers # Manbalar, guruhlar, bo'limlar
-npm run seed:services   # Test xizmatlar va xonalar
+npm run seed:roles          # Rollar (Admin, Doctor, Receptionist, Accountant, Nurse)
+npm run seed:users          # Standart foydalanuvchilar
+npm run seed:regions        # Viloyatlar va tumanlar
+npm run seed:classifiers    # Manbalar, guruhlar, bo'limlar
+npm run seed:clients-only   # Test mijozlar (20 ta)
+npm run seed:rooms-only     # Test xonalar
+npm run seed:services-only  # Test xizmatlar
+npm run seed:referrals-only # Test referallar
+npm run seed:visits-only    # Test tashriflar (3 ta)
+npm run seed:payments-only  # Test to'lovlar (barcha holat)
 ```
+
+### Payment seed holatlari (`seed:payments-only`)
+
+| # | Holat | Tavsif |
+|---|-------|--------|
+| 1 | OtherPaidGroup | 6 ta xarajat kategoriyasi (kommunal, maosh, tibbiy, ta'mirlash, marketing, boshqa) |
+| 2 | To'liq to'langan visit | `DONE` statusli visitlar uchun payment, `debt_amount=0` |
+| 3 | Qisman to'lov (qarz) | `COMPLETED` visitlar uchun 50% to'lov, qarz qoladi |
+| 4 | Ko'p qismli to'lov | 2 ta alohida payment: 60% + 40% |
+| 5 | Avans (ClientPaid, visit yo'q) | Mijoz balansini to'ldirish |
+| 6 | Avans visit bilan | ClientPaid visit_id bilan bog'liq |
+| 7 | Boshqa kirimlar | Visit bilan bog'liq bo'lmagan INCOME payment |
+| 8 | Kommunal xarajatlar | OtherPaid — elektr, gaz, suv, internet |
+| 9 | Maosh to'lovlari | OtherPaid — shifokor/hamshira/qabulxona ish haqi |
+| 10 | Tibbiy buyumlar | OtherPaid — dori, bir martalik jihozlar |
+| 11 | Marketing xarajatlari | OtherPaid — reklama, bosmaxona |
+| 12 | Ta'mirlash xarajatlari | OtherPaid — qurilish va ta'mirlash |
+| 13 | 30 kunlik trend | Oxirgi 30 kun uchun kunlik kirim ma'lumotlari (chart uchun) |
 
 ### Standart foydalanuvchilar (seed'dan keyin)
 

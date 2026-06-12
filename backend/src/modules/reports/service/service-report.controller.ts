@@ -1,10 +1,13 @@
-import { Controller, Get, Post, Query, Res } from '@nestjs/common';
+import { Controller, Get, Post, Query, Res, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Response } from 'express';
+import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { ServiceReportService } from './service-report.service';
 import { GetServiceReportDto, GetServiceRankingDto, ExportServiceReportDto } from './dto/get-service-report.dto';
 
 @ApiTags('Reports - Service')
+@ApiBearerAuth('bearer')
+@UseGuards(JwtAuthGuard)
 @Controller('reports/services')
 export class ServiceReportController {
   constructor(private readonly serviceReportService: ServiceReportService) {}

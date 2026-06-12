@@ -5,12 +5,16 @@ import {
   Query,
   Res,
   Headers,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Response } from 'express';
+import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { DoctorPerformanceService } from './doctor-performance.service';
 
 @ApiTags('Reports - Doctor Performance')
+@ApiBearerAuth('bearer')
+@UseGuards(JwtAuthGuard)
 @Controller('reports/doctor-performance')
 export class DoctorPerformanceController {
   constructor(private readonly doctorPerformanceService: DoctorPerformanceService) {}

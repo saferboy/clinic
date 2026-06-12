@@ -440,40 +440,45 @@ export function ClientsPage() {
           </table>
         </div>
 
-        {/* Pagination */}
-        {pagination.totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-border">
-            <div className="text-xs text-muted-foreground">
-              {(pagination.page - 1) * pagination.limit + 1}–{Math.min(pagination.page * pagination.limit, pagination.total)} / {pagination.total} ta
-            </div>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setPagination(p => ({ ...p, page: Math.max(1, p.page - 1) }))}
-                disabled={pagination.page === 1}
-                className="p-1.5 rounded-lg hover:bg-muted disabled:opacity-40 transition-colors"
-              >
-                ←
-              </button>
-              {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map(p => (
-                <button
-                  key={p}
-                  onClick={() => setPagination(prev => ({ ...prev, page: p }))}
-                  className={`w-7 h-7 rounded-lg text-xs transition-colors ${p === pagination.page ? 'bg-blue-600 text-white' : 'hover:bg-muted text-foreground'}`}
-                >
-                  {p}
-                </button>
-              ))}
-              <button
-                onClick={() => setPagination(p => ({ ...p, page: Math.min(pagination.totalPages, p.page + 1) }))}
-                disabled={pagination.page >= pagination.totalPages}
-                className="p-1.5 rounded-lg hover:bg-muted disabled:opacity-40 transition-colors"
-              >
-                →
-              </button>
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Pagination */}
+      {pagination.totalPages > 1 && (
+        <div className="flex justify-center items-center gap-3 mt-3 mb-3">
+          <button
+            type="button"
+            onClick={() => setPagination(p => ({ ...p, page: p.page - 1 }))}
+            disabled={pagination.page === 1}
+            className="px-5 py-2.5 rounded-xl border border-border text-base disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
+          >
+            ← Oldingi
+          </button>
+
+          <div className="flex gap-1">
+            {Array.from({ length: Math.max(1, pagination.totalPages) }, (_, i) => i + 1).map(p => (
+              <button
+                type="button"
+                key={p}
+                onClick={() => setPagination(prev => ({ ...prev, page: p }))}
+                className={`w-10 h-10 rounded-lg text-base font-medium transition-colors ${
+                  p === pagination.page ? 'bg-blue-600 text-white' : 'border border-border hover:bg-muted'
+                }`}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setPagination(p => ({ ...p, page: p.page + 1 }))}
+            disabled={pagination.page >= Math.max(1, pagination.totalPages)}
+            className="px-5 py-2.5 rounded-xl border border-border text-base disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
+          >
+            Keyingi →
+          </button>
+        </div>
+      )}
 
       {showModal && (
         <ClientModal

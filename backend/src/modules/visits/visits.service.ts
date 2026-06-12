@@ -655,9 +655,16 @@ export class VisitsService {
     // 1. Visit mavjudligini tekshirish
     const visit = await this.findRaw(visitId);
 
-    // 2. To'lov summasi visit debt_amount dan oshmasligi kerak
-    if (dto.amount > Number(visit.debt_amount)) {
-      throw new BadRequestException('To\'lov summasi qarzdan oshmasligi kerak');
+    // 2. Joriy qarzni qayta hisoblash (ClientPaid ham hisobga olinadi)
+    await this.recalculateVisitAmounts(visitId);
+    const freshVisit = await this.findRaw(visitId);
+    const currentDebt = Number(freshVisit.debt_amount);
+
+    if (currentDebt <= 0) {
+      throw new BadRequestException('Visit to\'liq to\'langan, qarz qolmagan');
+    }
+    if (dto.amount > currentDebt) {
+      throw new BadRequestException(`To'lov summasi qarzdan oshmasligi kerak. Joriy qarz: ${currentDebt} so'm`);
     }
 
     // 3. Payment yaratish
@@ -811,20 +818,23 @@ export class VisitsService {
    * Visit miqdorlarini qayta hisoblash
    */
   private async recalculateVisitAmounts(visitId: number): Promise<void> {
-    // Barcha VisitService yozuvlarini yig'ish
-    const services = await this.prisma.visitService.aggregate({
-      where: { visit_id: visitId, deleted_at: null },
-      _sum: { total: true },
-    });
-
-    // Barcha Payment yozuvlarini yig'ish
-    const payments = await this.prisma.payment.aggregate({
-      where: { visit_id: visitId, deleted_at: null, payment_type: 'INCOME' },
-      _sum: { amount: true },
-    });
+    const [services, payments, clientPaid] = await Promise.all([
+      this.prisma.visitService.aggregate({
+        where: { visit_id: visitId, deleted_at: null },
+        _sum: { total: true },
+      }),
+      this.prisma.payment.aggregate({
+        where: { visit_id: visitId, deleted_at: null, payment_type: 'INCOME' },
+        _sum: { amount: true },
+      }),
+      this.prisma.clientPaid.aggregate({
+        where: { visit_id: visitId, deleted_at: null },
+        _sum: { amount: true },
+      }),
+    ]);
 
     const total_amount = Number(services._sum.total || 0);
-    const paid_amount = Number(payments._sum.amount || 0);
+    const paid_amount = Number(payments._sum.amount || 0) + Number(clientPaid._sum.amount || 0);
     const debt_amount = total_amount - paid_amount;
 
     // Visit yangilash

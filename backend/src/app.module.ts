@@ -26,6 +26,7 @@ import { DashboardModule } from './modules/reports/dashboard/dashboard.module';
 import { ReferralReportModule } from './modules/reports/referral/referral-report.module';
 import { BirthdayReportModule } from './modules/reports/birthday/birthday-report.module';
 import { ClinicSettingsModule } from './modules/clinic-settings/clinic-settings.module';
+import { PaymentsModule } from './modules/payments/payments.module';
 import { IsUniqueConstraint } from './common/validators/is-unique.validator';
 import { SanitizationInterceptor } from './common/interceptors/sanitization.interceptor';
 
@@ -60,6 +61,7 @@ import { SanitizationInterceptor } from './common/interceptors/sanitization.inte
     ReferralReportModule,
     BirthdayReportModule,
     ClinicSettingsModule,
+    PaymentsModule,
   ],
   controllers: [AppController],
   providers: [

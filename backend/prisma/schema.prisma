@@ -464,7 +464,7 @@ model Room {
 model Service {
     // Primary Key - Unikal identifikator
     id            Int          @id @default(autoincrement())
-    
+     
     // Foreign Key - Bo'limga bog'lanish (SetNull cascade)
     department_id Int?         @map("department_id")
     

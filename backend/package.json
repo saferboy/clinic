@@ -35,6 +35,7 @@
     "seed:services-only": "ts-node prisma/seed-services.ts",
     "seed:referrals-only": "ts-node prisma/seed-referrals.ts",
     "seed:visits-only": "ts-node prisma/seed-visits.ts",
+    "seed:payments-only": "ts-node prisma/seed-payments.ts",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
