@@ -4,7 +4,21 @@
       "PowerShell(npx ts-node prisma/seeds/fix-sequences.ts)",
       "Bash(curl -s http://localhost:3000/api/v1/users/stats -o /dev/null -w \"%{http_code}\\\\n\")",
       "Bash(npx tsc *)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(npx ts-node *)",
+      "Bash(npx prisma *)",
+      "Bash(Select-String -Path \"D:/no-money/clinic/backend/prisma/migrations/20260323084741/migration.sql\" -Pattern \"Payment|ClientPaid|OtherPaid\")",
+      "Bash(Select-Object -First 10)",
+      "Bash(npx nest *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(gh pr create --title 'feat\\(payment\\): Payment module with RBAC and business logic' --base dev --body ' *)",
+      "Bash(git checkout *)",
+      "Bash(git merge *)",
+      "PowerShell(netstat *)",
+      "PowerShell(Get-NetTCPConnection *)",
+      "Bash(netstat -ano)"
     ]
   }
 }

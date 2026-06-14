@@ -1,4 +1,4 @@
-import { Bell, Search, Moon, Sun, Menu, ChevronDown, Clock } from 'lucide-react';
+import { Bell, Moon, Sun, Menu, ChevronDown, Clock } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { getStatusLabel } from '../../mockData';
@@ -35,13 +35,6 @@ export function Header({ title, subtitle, onMenuClick, darkMode, onDarkModeToggl
       </div>
 
       <div className="flex items-center gap-2">
-        {/* Search */}
-        <div className="hidden md:flex items-center gap-2 bg-muted rounded-lg px-3 py-1.5 text-sm text-muted-foreground cursor-pointer hover:bg-accent transition-colors">
-          <Search size={15} />
-          <span className="text-xs">Qidirish</span>
-          <kbd className="text-xs bg-background border border-border rounded px-1 py-0.5 ml-1">⌘K</kbd>
-        </div>
-
         {/* Dark mode */}
         <button
           onClick={onDarkModeToggle}
