@@ -108,15 +108,19 @@ export const paymentsApi = {
   getClientPaid: (params?: {
     client_id?: number;
     visit_id?: number;
+    date_from?: string;
+    date_to?: string;
     page?: number;
     limit?: number;
   }) => {
     const q = new URLSearchParams();
     if (params?.client_id) q.set('client_id', String(params.client_id));
     if (params?.visit_id) q.set('visit_id', String(params.visit_id));
+    if (params?.date_from) q.set('date_from', params.date_from);
+    if (params?.date_to) q.set('date_to', params.date_to);
     if (params?.page) q.set('page', String(params.page));
     if (params?.limit) q.set('limit', String(params.limit));
-    return api.get<ApiResponse<{ data: BackendClientPaid[]; total: number }>>(
+    return api.get<ApiResponse<{ data: BackendClientPaid[]; total: number; totalPages?: number }>>(
       `/client-paid?${q}`,
       true,
     );
@@ -127,6 +131,7 @@ export const paymentsApi = {
     amount: number;
     visit_id?: number;
     description?: string;
+    payment_date?: string;
   }) => api.post<ApiResponse<BackendClientPaid>>('/client-paid', body, true),
 
   deleteClientPaid: (id: number) =>
@@ -172,6 +177,7 @@ export const paymentsApi = {
     amount: number;
     group_id?: number;
     description?: string;
+    payment_date?: string;
   }) => api.post<ApiResponse<BackendOtherPaid>>('/other-paid', body, true),
 
   deleteOtherPaid: (id: number) =>

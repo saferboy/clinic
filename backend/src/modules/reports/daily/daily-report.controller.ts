@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Response } from 'express';
+import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { DailyReportService } from './daily-report.service';
 import { GetDailyReportDto } from './dto/get-daily-report.dto';
 import { ExportDailyReportDto } from './dto/export-daily-report.dto';
@@ -19,6 +20,8 @@ import { GetDoctorReportDto } from './dto/get-doctor-report.dto';
 import { GetDailyTrendDto } from './dto/get-daily-trend.dto';
 
 @ApiTags('Reports - Daily')
+@ApiBearerAuth('bearer')
+@UseGuards(JwtAuthGuard)
 @Controller('reports/daily')
 export class DailyReportController {
   constructor(private readonly dailyReportService: DailyReportService) {}

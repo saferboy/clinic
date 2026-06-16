@@ -161,6 +161,8 @@ export function hasAccess(roleName: string | undefined, page: string): boolean {
     services: ['SuperAdmin', 'Admin', 'Doctor', 'Accountant'],
     rooms: ['SuperAdmin', 'Admin', 'Doctor', 'Nurse', 'Receptionist'],
     departments: ['SuperAdmin', 'Admin'],
+    sources: ['SuperAdmin', 'Admin'],
+    referrals: ['SuperAdmin', 'Admin', 'Receptionist'],
      reports: ['SuperAdmin', 'Admin', 'Doctor', 'Receptionist', 'Accountant'],
      settings: ['SuperAdmin', 'Admin'],
      users: ['SuperAdmin', 'Admin'],

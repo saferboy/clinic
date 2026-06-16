@@ -9,6 +9,10 @@ import {
   Gift, Megaphone, RotateCcw, Stethoscope,
 } from 'lucide-react';
 import { reportsApi } from '../api/reports.service';
+import type {
+  DailyReport, MonthlyReport, ServiceReport, ClientListReport,
+  DebtReport, ReferralReport, BirthdayReport, DoctorRanking,
+} from '../api/reports.service';
 import { toast } from 'sonner';
 
 type ReportTab =
@@ -97,14 +101,14 @@ export function ReportsPage() {
   const [birthdayDays, setBirthdayDays] = useState(30);
 
   // Data state
-  const [dailyData, setDailyData] = useState<any>(null);
-  const [monthlyData, setMonthlyData] = useState<any>(null);
-  const [doctorData, setDoctorData] = useState<any>(null);
-  const [serviceData, setServiceData] = useState<any>(null);
-  const [clientData, setClientData] = useState<any>(null);
-  const [debtData, setDebtData] = useState<any>(null);
-  const [marketingData, setMarketingData] = useState<any>(null);
-  const [birthdayData, setBirthdayData] = useState<any>(null);
+  const [dailyData, setDailyData] = useState<DailyReport | null>(null);
+  const [monthlyData, setMonthlyData] = useState<MonthlyReport | null>(null);
+  const [doctorData, setDoctorData] = useState<{ rankings: DoctorRanking[] } | null>(null);
+  const [serviceData, setServiceData] = useState<ServiceReport | null>(null);
+  const [clientData, setClientData] = useState<ClientListReport | null>(null);
+  const [debtData, setDebtData] = useState<DebtReport | null>(null);
+  const [marketingData, setMarketingData] = useState<ReferralReport | null>(null);
+  const [birthdayData, setBirthdayData] = useState<BirthdayReport | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -235,7 +239,7 @@ export function ReportsPage() {
             <h4 className="font-medium mb-3 text-sm">Xizmatlar reytingi</h4>
             {d.serviceStats?.length ? (
               <div className="space-y-2">
-                {d.serviceStats.slice(0, 6).map((s: any, i: number) => (
+                {d.serviceStats.slice(0, 6).map((s, i) => (
                   <div key={i} className="flex items-center gap-2">
                     <div className="w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold"
                       style={{ background: COLORS[i % COLORS.length] }}>{i + 1}</div>
@@ -262,7 +266,7 @@ export function ReportsPage() {
                   <Pie data={d.newClientStats.bySource} cx="50%" cy="50%" outerRadius={75}
                     dataKey="count" nameKey="sourceName"
                     label={({ sourceName, count }) => `${sourceName}: ${count}`}>
-                    {d.newClientStats.bySource.map((_: any, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                    {d.newClientStats.bySource.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                   </Pie>
                   <Tooltip />
                 </PieChart>
@@ -321,7 +325,7 @@ export function ReportsPage() {
           <div className="bg-white dark:bg-slate-800 rounded-2xl border border-border p-5">
             <h4 className="font-medium mb-3 text-sm">Qarz yoshi (aging)</h4>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {d.debtStats.debtByAge.map((a: any, i: number) => (
+              {d.debtStats.debtByAge.map((a, i) => (
                 <div key={i} className="rounded-xl bg-muted/30 p-3 text-center">
                   <div className="text-lg font-bold" style={{ color: COLORS[i] }}>{fmtS(a.amount)}</div>
                   <div className="text-xs text-muted-foreground">{a.age}</div>
@@ -353,7 +357,7 @@ export function ReportsPage() {
           </ResponsiveContainer>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {rankings.map((doc: any, i: number) => (
+          {rankings.map((doc, i) => (
             <div key={doc.doctorId} className="bg-white dark:bg-slate-800 rounded-xl border border-border p-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
@@ -418,7 +422,7 @@ export function ReportsPage() {
                   <Pie data={d.byDepartment} cx="50%" cy="50%" outerRadius={85}
                     dataKey="revenue" nameKey="departmentName"
                     label={({ departmentName, percentage }) => `${departmentName} ${percentage}%`}>
-                    {d.byDepartment.map((_: any, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                    {d.byDepartment.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                   </Pie>
                   <Tooltip formatter={(v: number) => fmtS(v)} />
                 </PieChart>
@@ -484,7 +488,7 @@ export function ReportsPage() {
                 </tr>
               </thead>
               <tbody>
-                {clients.map((c: any) => (
+                {clients.map((c) => (
                   <tr key={c.clientId} className="border-b border-border last:border-0 hover:bg-muted/20">
                     <td className="px-4 py-3 font-medium">{c.clientName}</td>
                     <td className="px-4 py-3 text-muted-foreground">{c.phone}</td>
@@ -522,7 +526,7 @@ export function ReportsPage() {
           <div className="bg-white dark:bg-slate-800 rounded-2xl border border-border p-5">
             <h4 className="font-medium mb-3 text-sm">Qarz yoshi (Aging)</h4>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {d.aging.map((a: any, i: number) => (
+              {d.aging.map((a, i) => (
                 <div key={i} className="rounded-xl bg-muted/30 p-3 text-center">
                   <div className="text-lg font-bold text-red-500">{fmtS(a.amount)}</div>
                   <div className="text-xs font-medium text-muted-foreground">{a.ageRange}</div>
@@ -545,7 +549,7 @@ export function ReportsPage() {
                 </tr>
               </thead>
               <tbody>
-                {d.topDebtors?.map((c: any) => (
+                {d.topDebtors?.map((c) => (
                   <tr key={c.clientId} className="border-b border-border last:border-0">
                     <td className="px-4 py-3 font-medium">{c.clientName}</td>
                     <td className="px-4 py-3 text-muted-foreground">{c.phone}</td>
@@ -578,7 +582,7 @@ export function ReportsPage() {
             <h4 className="font-medium mb-3 text-sm">Referal reytingi</h4>
             {d.referrals?.length ? (
               <div className="space-y-3">
-                {d.referrals.slice(0, 8).map((r: any, i: number) => (
+                {d.referrals.slice(0, 8).map((r, i) => (
                   <div key={r.referralId} className="flex items-center gap-3">
                     <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
                       style={{ background: COLORS[i % COLORS.length] }}>{i + 1}</div>
@@ -609,7 +613,7 @@ export function ReportsPage() {
                   <Pie data={d.sourceStats} cx="50%" cy="50%" outerRadius={80}
                     dataKey="clientCount" nameKey="sourceName"
                     label={({ sourceName, percentage }) => `${sourceName} ${percentage}%`}>
-                    {d.sourceStats.map((_: any, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                    {d.sourceStats.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                   </Pie>
                   <Tooltip formatter={(v: number) => `${v} ta`} />
                 </PieChart>
@@ -629,7 +633,7 @@ export function ReportsPage() {
     const d = monthlyData;
     if (!d) return <Empty />;
     const nc = d.newClientStats;
-    const genderData = nc?.byGender?.map((g: any) => ({
+    const genderData = nc?.byGender?.map((g) => ({
       name: g.gender === 'MALE' ? 'Erkak' : g.gender === 'FEMALE' ? 'Ayol' : 'Boshqa',
       value: g.count,
       percentage: g.percentage,
@@ -652,7 +656,7 @@ export function ReportsPage() {
                   <Pie data={genderData} cx="50%" cy="50%" outerRadius={80}
                     dataKey="value" nameKey="name"
                     label={({ name, percentage }) => `${name}: ${percentage}%`}>
-                    {genderData.map((_: any, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                    {genderData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                   </Pie>
                   <Tooltip />
                 </PieChart>
@@ -663,7 +667,7 @@ export function ReportsPage() {
             <h4 className="font-medium mb-3 text-sm">Manbalar bo'yicha yangi mijozlar</h4>
             {nc?.bySource?.length ? (
               <div className="space-y-2 mt-2">
-                {nc.bySource.map((s: any, i: number) => (
+                {nc.bySource.map((s, i) => (
                   <div key={s.sourceId} className="flex items-center gap-2">
                     <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
                     <span className="flex-1 text-sm">{s.sourceName}</span>
@@ -713,7 +717,7 @@ export function ReportsPage() {
                 </tr>
               </thead>
               <tbody>
-                {d.clients?.map((c: any) => (
+                {d.clients?.map((c) => (
                   <tr key={c.clientId} className={`border-b border-border last:border-0 ${c.daysUntilBirthday === 0 ? 'bg-amber-50 dark:bg-amber-900/10' : ''}`}>
                     <td className="px-4 py-3 font-medium flex items-center gap-2">
                       {c.daysUntilBirthday === 0 && <span className="text-amber-500">🎂</span>}

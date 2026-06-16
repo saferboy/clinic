@@ -14,6 +14,8 @@ import { ReportsPage } from './pages/ReportsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { UsersPage } from './pages/UsersPage';
 import { UserRolesPage } from './pages/UserRolesPage';
+import { SourcesPage } from './pages/SourcesPage';
+import { ReferralsPage } from './pages/ReferralsPage';
 
 export const router = createBrowserRouter([
   {
@@ -41,6 +43,8 @@ export const router = createBrowserRouter([
       { path: 'services', Component: ServicesPage },
       { path: 'rooms', Component: RoomsPage },
       { path: 'departments', Component: DepartmentsPage },
+      { path: 'sources', Component: SourcesPage },
+      { path: 'referrals', Component: ReferralsPage },
       { path: 'reports', Component: ReportsPage },
       { path: 'settings', Component: SettingsPage },
       { path: 'users', Component: UsersPage },
