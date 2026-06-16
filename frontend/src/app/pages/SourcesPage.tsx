@@ -16,7 +16,7 @@ import {
 } from '../components/ui/alert-dialog';
 
 type StatusFilter = 'ALL' | 'ACTIVE' | 'INACTIVE';
-const LIMIT = 10;
+const LIMIT = 7;
 
 function SourceModal({ source, onClose, onSave }: {
   source: Partial<Source> | null;

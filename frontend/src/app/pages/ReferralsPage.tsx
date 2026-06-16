@@ -92,7 +92,7 @@ export function ReferralsPage() {
   const [searchInput, setSearchInput] = useState('');
   const search = useDebounce(searchInput, 300);
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
-  const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 0 });
+  const [pagination, setPagination] = useState({ page: 1, limit: 7, total: 0, totalPages: 0 });
   const abortRef = useRef<AbortController | null>(null);
 
   const fetchReferrals = async () => {
