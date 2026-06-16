@@ -36,6 +36,12 @@ const visitSelect = {
       id: true,
       full_name: true,
       phone: true,
+      source: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
     },
   },
   doctor: {
@@ -370,17 +376,10 @@ export class VisitsService {
     const visit = await this.findRaw(id);
 
     // 2. Status o'zgarish qoidalarini tekshirish
-    const statusTransitions: any = {
-      SCHEDULED: ['IN_PROGRESS', 'CANCELLED', 'NO_SHOW'],
-      IN_PROGRESS: ['COMPLETED', 'CANCELLED'],
-      COMPLETED: ['DONE'],
-      CANCELLED: [],
-      NO_SHOW: [],
-      DONE: [],
-    };
+    const allStatuses = ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'DONE', 'CANCELLED', 'NO_SHOW'];
 
-    if (!statusTransitions[visit.status].includes(dto.status)) {
-      throw new BadRequestException(`Status o'zgarishi mumkin emas: ${visit.status} → ${dto.status}`);
+    if (!allStatuses.includes(dto.status)) {
+      throw new BadRequestException(`Noto'g'ri status: ${dto.status}`);
     }
 
     // 3. Status yangilash

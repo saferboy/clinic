@@ -2,7 +2,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router';
 import {
   LayoutDashboard, Users, Calendar, CreditCard, BarChart3,
   Settings, UserCog, LogOut, Building2, Stethoscope, ChevronLeft, ChevronRight,
-  BedDouble, Wrench, X, UsersRound, Shield, ChevronDown
+  BedDouble, Wrench, X, UsersRound, Shield, ChevronDown, Share2, Award
 } from 'lucide-react';
 import { useAuth, hasAccess } from '../../contexts/AuthContext';
 import { getStatusLabel } from '../../mockData';
@@ -24,6 +24,8 @@ const navItems: NavItem[] = [
   { label: 'Xizmatlar', path: '/services', icon: <Stethoscope size={20} />, page: 'services' },
   { label: 'Xonalar', path: '/rooms', icon: <BedDouble size={20} />, page: 'rooms' },
   { label: 'Bo\'limlar', path: '/departments', icon: <Wrench size={20} />, page: 'departments' },
+  { label: 'Manbalar', path: '/sources', icon: <Share2 size={20} />, page: 'sources' },
+  { label: 'Tavsiyachilar', path: '/referrals', icon: <Award size={20} />, page: 'referrals' },
   { label: 'Hisobotlar', path: '/reports', icon: <BarChart3 size={20} />, page: 'reports' },
   { label: 'Sozlamalar', path: '/settings', icon: <Settings size={20} />, page: 'settings' },
 ];

@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Search, Calendar, List, X, Edit, Eye, Clock, Loader2, ChevronLeft, ChevronRight, CreditCard, CheckCircle, AlertCircle, Stethoscope, Home, DollarSign } from 'lucide-react';
+import { Plus, Search, Calendar, List, Edit, Eye, Clock, Loader2, ChevronLeft, ChevronRight, CreditCard, CheckCircle, AlertCircle, Stethoscope, Home, DollarSign, X, Award, Phone } from 'lucide-react';
+import { PaginationBar } from '../components/ui/PaginationBar';
+import { BaseModal } from '../components/ui/BaseModal';
+import { formatCurrency, formatDate, formatTime, formatDateTime, formatNumber, formatMonthYear } from '../utils/formatters';
 import { toast } from 'sonner';
 import { visitsApi, Visit, CreateVisitDto, UpdateVisitStatusDto } from '../api/visits.service';
 import { clientsApi, Client } from '../api/clients.service';
@@ -46,10 +49,6 @@ const getStatusLabel = (status: string) => {
     NO_SHOW: 'Kelmadi',
   };
   return labels[status] || status;
-};
-
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('uz-UZ').format(amount) + ' so\'m';
 };
 
 function VisitModal({ visit, clients, onClose, onSave, isLoading }: {
@@ -136,18 +135,43 @@ function VisitModal({ visit, clients, onClose, onSave, isLoading }: {
   const selectedClient = clients.find(c => c.id === form.client_id);
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-background rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-border">
-          <h2 className="text-lg font-semibold">
-            {visit?.id ? 'Tashrifni tahrirlash' : 'Yangi tashrif'}
-          </h2>
-          <button type="button" onClick={onClose} className="p-1.5 hover:bg-muted rounded-lg">
-            <X size={18} />
+    <BaseModal
+      title={visit?.id ? 'Tashrifni tahrirlash' : 'Yangi tashrif'}
+      onClose={onClose}
+      size="lg"
+      scrollable
+      footer={
+        <>
+          <button type="button" onClick={onClose} className="flex-1 py-2.5 border border-border rounded-xl text-sm hover:bg-muted transition-colors">
+            Bekor qilish
           </button>
-        </div>
-        <div className="p-6 space-y-3">
-<div>
+          <button
+            type="button"
+            onClick={() => {
+              if (!form.doctor_id) { toast.error('Iltimos, shifokor tanlang'); return; }
+              const dateTime = form.visit_time
+                ? `${form.visit_date}T${form.visit_time}:00.000Z`
+                : form.visit_date;
+              onSave({
+                client_id: form.client_id,
+                doctor_id: form.doctor_id,
+                room_id: form.room_id,
+                service_ids: form.service_ids.length > 0 ? form.service_ids : undefined,
+                visit_date: dateTime,
+                description: form.description || undefined,
+                status: form.status as 'SCHEDULED' | 'IN_PROGRESS',
+              }, visit?.id ? 'update' : 'create');
+            }}
+            disabled={!form.client_id || !form.doctor_id || isLoading}
+            className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {isLoading && <Loader2 size={16} className="animate-spin" />}
+            Saqlash
+          </button>
+        </>
+      }
+    >
+      <div>
               <label htmlFor="client-input" className="text-sm font-medium mb-1 block">Bemor *</label>
               <div className="relative">
                 <input
@@ -277,46 +301,7 @@ function VisitModal({ visit, clients, onClose, onSave, isLoading }: {
                 placeholder="Qo'shimcha ma'lumot..."
               />
             </div>
-        </div>
-        <div className="flex gap-3 p-6 border-t border-border">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-1 py-2.5 border border-border rounded-xl text-sm hover:bg-muted transition-colors"
-          >
-            Bekor qilish
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (!form.doctor_id) {
-                toast.error('Iltimos, shifokor tanlang');
-                return;
-              }
-              const dateTime = form.visit_time 
-                ? `${form.visit_date}T${form.visit_time}:00.000Z`
-                : form.visit_date;
-              onSave({
-                client_id: form.client_id,
-                doctor_id: form.doctor_id,
-                room_id: form.room_id,
-                service_ids: form.service_ids.length > 0 ? form.service_ids : undefined,
-                visit_date: dateTime,
-                description: form.description || undefined,
-                status: form.status as 'SCHEDULED' | 'IN_PROGRESS',
-              }, visit?.id ? 'update' : 'create');
-            }}
-            disabled={!form.client_id || !form.doctor_id || isLoading}
-            style={{ backgroundColor: (!form.client_id || !form.doctor_id || isLoading) ? '#ccc' : '' }}
-            onMouseDown={() => {}}
-            className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {isLoading && <Loader2 size={16} className="animate-spin" />}
-            Saqlash
-          </button>
-        </div>
-      </div>
-    </div>
+    </BaseModal>
   );
 }
 
@@ -337,45 +322,33 @@ function ClientSearchModal({ onClose, onSelect, isLoading }: {
   }, [search]);
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-background rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="flex items-center justify-between p-6 border-b border-border">
-          <h2 className="text-lg font-semibold">Bemor tanlash</h2>
-          <button type="button" onClick={onClose} className="p-1.5 hover:bg-muted rounded-lg">
-            <X size={18} />
+    <BaseModal title="Bemor tanlash" onClose={onClose} size="md">
+      <input
+        type="text"
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+        placeholder="Bemor ismini yozing..."
+        className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        autoFocus
+      />
+      <div className="max-h-64 overflow-y-auto -mx-2">
+        {clients.map(client => (
+          <button
+            key={client.id}
+            type="button"
+            onClick={() => onSelect(client)}
+            disabled={isLoading}
+            className="w-full px-3 py-2 text-left hover:bg-muted rounded-lg mb-1 disabled:opacity-50"
+          >
+            <div className="font-medium">{client.full_name ?? '—'}</div>
+            <div className="text-xs text-muted-foreground">{client.phone ?? '—'}</div>
           </button>
-        </div>
-        <div className="p-4">
-          <input
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Bemor ismini yozing..."
-            className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            autoFocus
-          />
-        </div>
-        <div className="max-h-64 overflow-y-auto px-4 pb-4">
-          {clients.map(client => (
-            <button
-              key={client.id}
-              type="button"
-              onClick={() => onSelect(client)}
-              disabled={isLoading}
-              className="w-full px-3 py-2 text-left hover:bg-muted rounded-lg mb-1 disabled:opacity-50"
-            >
-              <div className="font-medium">{client.full_name ?? '—'}</div>
-              <div className="text-xs text-muted-foreground">{client.phone ?? '—'}</div>
-            </button>
-          ))}
-          {clients.length === 0 && search.length >= 2 && (
-            <div className="text-center py-8 text-muted-foreground text-sm">
-              Bemor topilmadi
-            </div>
-          )}
-        </div>
+        ))}
+        {clients.length === 0 && search.length >= 2 && (
+          <div className="text-center py-8 text-muted-foreground text-sm">Bemor topilmadi</div>
+        )}
       </div>
-    </div>
+    </BaseModal>
   );
 }
 
@@ -397,11 +370,11 @@ function PayInModal({
   const handlePay = async () => {
     const amt = Number(amount);
     if (!amt || amt <= 0) { toast.error('Summa kiritilmadi'); return; }
-    if (amt > debt) { toast.error(`Summa qarzdan oshmasligi kerak: ${debt.toLocaleString('uz-UZ')} so'm`); return; }
+    if (amt > debt) { toast.error(`Summa qarzdan oshmasligi kerak: ${formatCurrency(debt)}`); return; }
     try {
       setSaving(true);
       await visitsApi.createPayment(visit.id, { amount: amt, description: description || undefined });
-      toast.success(`${amt.toLocaleString('uz-UZ')} so'm qabul qilindi`);
+      toast.success(`${formatCurrency(amt)} qabul qilindi`);
       onPaid();
     } catch (err: any) {
       toast.error(err?.message || 'Xatolik yuz berdi');
@@ -411,85 +384,57 @@ function PayInModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4">
-      <div className="bg-background rounded-2xl shadow-2xl w-full max-w-sm">
-        <div className="flex items-center justify-between p-5 border-b border-border">
-          <div>
-            <p className="font-semibold">To'lov qabul qilish</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{visit.client?.full_name}</p>
-          </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-muted rounded-lg"><X size={18} /></button>
-        </div>
-        <div className="p-5 space-y-4">
-          <div className="grid grid-cols-3 gap-2 text-center text-xs">
-            <div className="bg-muted/40 rounded-xl p-2">
-              <div className="font-semibold text-foreground">{Number(visit.total_amount).toLocaleString('uz-UZ')}</div>
-              <div className="text-muted-foreground">Jami</div>
-            </div>
-            <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-2">
-              <div className="font-semibold text-green-600">{Number(visit.paid_amount).toLocaleString('uz-UZ')}</div>
-              <div className="text-muted-foreground">To'langan</div>
-            </div>
-            <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-2">
-              <div className="font-semibold text-red-600">{debt.toLocaleString('uz-UZ')}</div>
-              <div className="text-muted-foreground">Qarz</div>
-            </div>
-          </div>
-          <div>
-            <label className="text-sm font-medium mb-1 block">Summa (so'm) *</label>
-            <input
-              type="number"
-              value={amount}
-              onChange={e => setAmount(e.target.value)}
-              max={debt}
-              min={1}
-              className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="0"
-              autoFocus
-            />
-            <div className="flex gap-2 mt-2">
-              {[0.5, 1].map(ratio => (
-                <button
-                  key={ratio}
-                  type="button"
-                  onClick={() => setAmount(String(Math.round(debt * ratio)))}
-                  className="px-2.5 py-1 text-xs border border-border rounded-lg hover:bg-muted transition-colors"
-                >
-                  {ratio === 1 ? 'To\'liq' : '50%'}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <label className="text-sm font-medium mb-1 block">Izoh</label>
-            <input
-              type="text"
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Naqd / Karta / O'tkazma..."
-            />
-          </div>
-        </div>
-        <div className="flex gap-3 p-5 border-t border-border">
-          <button
-            onClick={onClose}
-            disabled={saving}
-            className="flex-1 py-2.5 border border-border rounded-xl text-sm hover:bg-muted transition-colors disabled:opacity-50"
-          >
+    <BaseModal
+      title="To'lov qabul qilish"
+      onClose={onClose}
+      size="sm"
+      zIndex="z-[60]"
+      footer={
+        <>
+          <button onClick={onClose} disabled={saving} className="flex-1 py-2.5 border border-border rounded-xl text-sm hover:bg-muted transition-colors disabled:opacity-50">
             Bekor
           </button>
-          <button
-            onClick={handlePay}
-            disabled={saving || !amount || Number(amount) <= 0}
-            className="flex-1 py-2.5 bg-green-600 text-white rounded-xl text-sm hover:bg-green-700 font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-          >
+          <button onClick={handlePay} disabled={saving || !amount || Number(amount) <= 0} className="flex-1 py-2.5 bg-green-600 text-white rounded-xl text-sm hover:bg-green-700 font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
             {saving ? <Loader2 size={14} className="animate-spin" /> : <CreditCard size={14} />}
             Qabul qilish
           </button>
+        </>
+      }
+    >
+      <p className="text-sm font-medium text-muted-foreground -mt-2">{visit.client?.full_name}</p>
+      <div className="grid grid-cols-3 gap-2 text-center text-xs">
+        <div className="bg-muted/40 rounded-xl p-2">
+          <div className="font-semibold text-foreground">{formatNumber(Number(visit.total_amount))}</div>
+          <div className="text-muted-foreground">Jami</div>
+        </div>
+        <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-2">
+          <div className="font-semibold text-green-600">{formatNumber(Number(visit.paid_amount))}</div>
+          <div className="text-muted-foreground">To'langan</div>
+        </div>
+        <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-2">
+          <div className="font-semibold text-red-600">{formatNumber(debt)}</div>
+          <div className="text-muted-foreground">Qarz</div>
         </div>
       </div>
-    </div>
+      <div>
+        <label className="text-sm font-medium mb-1 block">Summa (so'm) *</label>
+        <input type="number" value={amount} onChange={e => setAmount(e.target.value)} max={debt} min={1}
+          className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="0" autoFocus />
+        <div className="flex gap-2 mt-2">
+          {[0.5, 1].map(ratio => (
+            <button key={ratio} type="button" onClick={() => setAmount(String(Math.round(debt * ratio)))}
+              className="px-2.5 py-1 text-xs border border-border rounded-lg hover:bg-muted transition-colors">
+              {ratio === 1 ? "To'liq" : '50%'}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <label className="text-sm font-medium mb-1 block">Izoh</label>
+        <input type="text" value={description} onChange={e => setDescription(e.target.value)}
+          className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Naqd / Karta / O'tkazma..." />
+      </div>
+    </BaseModal>
   );
 }
 
@@ -601,6 +546,11 @@ function VisitDetailPanel({
                   <div>
                     <div className="font-medium text-sm">{visit.client?.full_name ?? '—'}</div>
                     <div className="text-xs text-muted-foreground">{visit.client?.phone ?? '—'}</div>
+                    {visit.client?.source && (
+                      <span className="inline-block mt-0.5 px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+                        {visit.client.source.name}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-xs">
@@ -612,7 +562,7 @@ function VisitDetailPanel({
                     <div className="text-muted-foreground mb-0.5">Sana</div>
                     <div className="font-medium flex items-center gap-1">
                       <Clock size={11} />
-                      {visit.visit_date ? new Date(visit.visit_date).toLocaleString('uz-UZ', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                      {formatDateTime(visit.visit_date)}
                     </div>
                   </div>
                 </div>
@@ -661,7 +611,7 @@ function VisitDetailPanel({
                     {visit.visit_services!.map(s => (
                       <div key={s.id} className="flex items-center justify-between py-1.5 px-3 bg-muted/30 rounded-lg text-xs">
                         <span className="font-medium">{s.service?.name ?? '—'}</span>
-                        <span className="text-muted-foreground">{Number(s.quantity) > 1 && `${s.quantity}x `}{Number(s.total).toLocaleString('uz-UZ')} so'm</span>
+                        <span className="text-muted-foreground">{Number(s.quantity) > 1 && `${s.quantity}x `}{formatCurrency(Number(s.total))}</span>
                       </div>
                     ))}
                   </div>
@@ -682,20 +632,47 @@ function VisitDetailPanel({
                 </div>
               )}
 
+              {/* Tavsiyachilar */}
+              {(visit.visit_referrals?.length ?? 0) > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
+                    <Award size={12} />Tavsiyachilar
+                  </p>
+                  <div className="space-y-1.5">
+                    {visit.visit_referrals!.map(vr => (
+                      <div key={vr.id} className="flex items-center gap-2 py-1.5 px-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg text-xs">
+                        <div className="w-5 h-5 rounded-full bg-amber-200 dark:bg-amber-800 flex items-center justify-center flex-shrink-0">
+                          <span className="text-amber-700 dark:text-amber-300 font-semibold text-[9px]">
+                            {vr.referral?.full_name?.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <span className="font-medium text-amber-900 dark:text-amber-300">{vr.referral?.full_name}</span>
+                        {vr.referral?.phone && (
+                          <span className="ml-auto flex items-center gap-1 text-muted-foreground">
+                            <Phone size={10} />
+                            {vr.referral.phone}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Moliyaviy holat */}
               <div className="border border-border rounded-xl p-4 space-y-3">
                 <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5"><DollarSign size={13} />Moliyaviy holat</p>
                 <div className="grid grid-cols-3 gap-2 text-center text-xs">
                   <div>
-                    <div className="text-base font-bold text-foreground">{total.toLocaleString('uz-UZ')}</div>
+                    <div className="text-base font-bold text-foreground">{formatNumber(total)}</div>
                     <div className="text-muted-foreground">Jami</div>
                   </div>
                   <div>
-                    <div className="text-base font-bold text-green-600">{paid.toLocaleString('uz-UZ')}</div>
+                    <div className="text-base font-bold text-green-600">{formatNumber(paid)}</div>
                     <div className="text-muted-foreground">To'langan</div>
                   </div>
                   <div>
-                    <div className={`text-base font-bold ${debt > 0 ? 'text-red-600' : 'text-green-600'}`}>{debt.toLocaleString('uz-UZ')}</div>
+                    <div className={`text-base font-bold ${debt > 0 ? 'text-red-600' : 'text-green-600'}`}>{formatNumber(debt)}</div>
                     <div className="text-muted-foreground">{debt > 0 ? 'Qarz' : 'Qarz yo\'q'}</div>
                   </div>
                 </div>
@@ -723,12 +700,12 @@ function VisitDetailPanel({
                     {visit.payments!.map(p => (
                       <div key={p.id} className="flex items-center justify-between py-1.5 px-3 bg-muted/30 rounded-lg text-xs">
                         <div>
-                          <div className="font-medium">{Number(p.amount).toLocaleString('uz-UZ')} so'm</div>
+                          <div className="font-medium">{formatCurrency(Number(p.amount))}</div>
                           {p.description && <div className="text-muted-foreground">{p.description}</div>}
                         </div>
                         <div className="text-muted-foreground text-right">
-                          {new Date(p.payment_date).toLocaleDateString('uz-UZ')}
-                          <div>{new Date(p.payment_date).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })}</div>
+                          {formatDate(p.payment_date)}
+                          <div>{formatTime(p.payment_date)}</div>
                         </div>
                       </div>
                     ))}
@@ -740,7 +717,7 @@ function VisitDetailPanel({
               {debt > 0 && (
                 <div className="flex items-start gap-2 px-3 py-2.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-xs text-red-600 dark:text-red-400">
                   <AlertCircle size={13} className="mt-0.5 shrink-0" />
-                  <span>Mijozda <strong>{debt.toLocaleString('uz-UZ')} so'm</strong> qarz mavjud.</span>
+                  <span>Mijozda <strong>{formatCurrency(debt)}</strong> qarz mavjud.</span>
                 </div>
               )}
             </>
@@ -755,7 +732,7 @@ function VisitDetailPanel({
               className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-colors"
             >
               <CreditCard size={16} />
-              To'lov qabul qilish — {debt.toLocaleString('uz-UZ')} so'm
+              To'lov qabul qilish — {formatCurrency(debt)}
             </button>
           </div>
         )}
@@ -866,7 +843,7 @@ const handleSave = async (dto: CreateVisitDto, action?: string) => {
       setActionLoading(true);
       const dto: UpdateVisitStatusDto = { status: newStatus as any };
       await visitsApi.updateStatus(visitId, dto);
-      toast.success(`Tashrif holati "${newStatus}" ga o'zgartirildi`);
+      toast.success(`Tashrif holati "${getStatusLabel(newStatus)}" ga o'zgartirildi`);
       fetchVisits();
     } catch (err: any) {
       toast.error(err.message || 'Xatolik yuz berdi');
@@ -957,7 +934,7 @@ const handleSave = async (dto: CreateVisitDto, action?: string) => {
       {viewMode === 'calendar' ? (
         <div className="bg-white dark:bg-slate-800 rounded-2xl border border-border shadow-sm p-4">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold">{new Date().toLocaleDateString('uz-UZ', { month: 'long', year: 'numeric' })}</h3>
+            <h3 className="font-semibold">{formatMonthYear(new Date().toISOString())}</h3>
             <div className="flex gap-2">
               <button
                 type="button"
@@ -1072,6 +1049,11 @@ const handleSave = async (dto: CreateVisitDto, action?: string) => {
                               <div className="text-xs text-muted-foreground">
                                 {visit.client?.phone || '—'}
                               </div>
+                              {visit.client?.source && (
+                                <span className="inline-block mt-0.5 px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+                                  {visit.client.source.name}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </td>
@@ -1080,11 +1062,11 @@ const handleSave = async (dto: CreateVisitDto, action?: string) => {
                         </td>
                         <td className="px-4 py-3">
                           <div className="text-foreground text-xs">
-                            {visit.visit_date ? new Date(visit.visit_date).toLocaleDateString('uz-UZ') : '—'}
+                            {formatDate(visit.visit_date)}
                           </div>
                           <div className="flex items-center gap-1 text-muted-foreground text-xs mt-0.5">
                             <Clock size={11} />
-                            {visit.visit_date ? new Date(visit.visit_date).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }) : '—'}
+                            {formatTime(visit.visit_date)}
                           </div>
                         </td>
                         <td className="px-4 py-3">
@@ -1119,7 +1101,7 @@ const handleSave = async (dto: CreateVisitDto, action?: string) => {
                             value={visit.status}
                             onChange={e => handleStatusChange(visit.id, e.target.value)}
                             disabled={actionLoading}
-                            className={`px-2 py-1 rounded-lg text-xs border-0 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 ${getStatusColor(visit.status)}`}
+                            className="px-2 py-1 rounded-lg text-xs border border-border bg-background text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 cursor-pointer"
                           >
                             {statusOptions.map(s => (
                               <option key={s} value={s}>{getStatusLabel(s)}</option>
@@ -1158,31 +1140,14 @@ const handleSave = async (dto: CreateVisitDto, action?: string) => {
               </div>
 
               {totalPages > 1 && (
-                <div className="flex items-center justify-between px-4 py-3 border-t border-border">
-                  <div className="text-sm text-muted-foreground">
-                    {total} tashrifdan {(page - 1) * 20 + 1}-{(page) * 20 > total ? total : (page) * 20}
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setPage(p => Math.max(1, p - 1))}
-                      disabled={page === 1}
-                      className="px-3 py-1.5 text-sm border border-border rounded-lg hover:bg-muted disabled:opacity-50"
-                    >
-                      <ChevronLeft size={16} />
-                    </button>
-                    <span className="px-3 py-1.5 text-sm">
-                      {page} / {totalPages}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                      disabled={page >= totalPages}
-                      className="px-3 py-1.5 text-sm border border-border rounded-lg hover:bg-muted disabled:opacity-50"
-                    >
-                      <ChevronRight size={16} />
-                    </button>
-                  </div>
+                <div className="border-t border-border px-4 py-3">
+                  <PaginationBar
+                    page={page}
+                    totalPages={totalPages}
+                    total={total}
+                    limit={20}
+                    onPageChange={setPage}
+                  />
                 </div>
               )}
             </>

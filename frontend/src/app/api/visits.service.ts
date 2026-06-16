@@ -18,6 +18,7 @@ export interface Visit {
     id: number;
     full_name: string;
     phone: string;
+    source?: { id: number; name: string } | null;
   };
   doctor: {
     id: number;

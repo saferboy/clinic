@@ -9,11 +9,14 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Response } from 'express';
+import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { MonthlyReportService } from './monthly-report.service';
 import { GetMonthlyReportDto } from './dto/get-monthly-report.dto';
 import { ExportMonthlyReportDto } from './dto/export-monthly-report.dto';
 
 @ApiTags('Reports - Monthly')
+@ApiBearerAuth('bearer')
+@UseGuards(JwtAuthGuard)
 @Controller('reports/monthly')
 export class MonthlyReportController {
   constructor(private readonly monthlyReportService: MonthlyReportService) {}

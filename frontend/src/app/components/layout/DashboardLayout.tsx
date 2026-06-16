@@ -6,13 +6,18 @@ import { Header } from './Header';
 const pageTitles: Record<string, { title: string; subtitle?: string }> = {
   '/dashboard': { title: 'Dashboard', subtitle: 'Klinika umumiy ko\'rinishi' },
   '/clients': { title: 'Mijozlar', subtitle: 'Barcha mijozlar ro\'yxati' },
+  '/client-groups': { title: 'Mijoz guruhlari', subtitle: 'Guruhlar va segmentlar' },
   '/visits': { title: 'Tashriflar', subtitle: 'Bemorlar tashriflari' },
   '/payments': { title: 'To\'lovlar', subtitle: 'Moliyaviy operatsiyalar' },
   '/services': { title: 'Xizmatlar', subtitle: 'Tibbiy xizmatlar va narxlar' },
   '/rooms': { title: 'Xonalar', subtitle: 'Xonalar holati va boshqaruvi' },
+  '/departments': { title: 'Bo\'limlar', subtitle: 'Klinika bo\'limlari' },
+  '/sources': { title: 'Manbalar', subtitle: 'Mijozlar kelish manbalari' },
+  '/referrals': { title: 'Tavsiyachilar', subtitle: 'Yo\'llovchi shifokorlar' },
   '/reports': { title: 'Hisobotlar', subtitle: 'Statistika va tahlil' },
   '/settings': { title: 'Sozlamalar', subtitle: 'Tizim sozlamalari' },
   '/users': { title: 'Foydalanuvchilar', subtitle: 'Xodimlar va ruxsatlar' },
+  '/user-roles': { title: 'Rollar', subtitle: 'Foydalanuvchi rollari va ruxsatlar' },
 };
 
 export function DashboardLayout() {
