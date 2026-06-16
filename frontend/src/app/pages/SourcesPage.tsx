@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Share2, Plus, Edit, Trash2, CheckCircle, XCircle, Search } from 'lucide-react';
 import { BaseModal } from '../components/ui/BaseModal';
+import { PaginationBar } from '../components/ui/PaginationBar';
 import { sourcesApi, Source } from '../api/sources.service';
 import { toast } from 'sonner';
 import {
@@ -15,6 +16,7 @@ import {
 } from '../components/ui/alert-dialog';
 
 type StatusFilter = 'ALL' | 'ACTIVE' | 'INACTIVE';
+const LIMIT = 10;
 
 function SourceModal({ source, onClose, onSave }: {
   source: Partial<Source> | null;
@@ -76,6 +78,7 @@ export function SourcesPage() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [searchInput, setSearchInput] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
+  const [page, setPage] = useState(1);
 
   const fetchSources = async () => {
     try {
@@ -101,6 +104,13 @@ export function SourcesPage() {
       return true;
     });
   }, [sources, searchInput, statusFilter]);
+
+  const totalPages = Math.ceil(filtered.length / LIMIT) || 1;
+  const paginated = filtered.slice((page - 1) * LIMIT, page * LIMIT);
+
+  // Filter o'zgarganda 1-sahifaga qaytish
+  const handleSearchChange = (v: string) => { setSearchInput(v); setPage(1); };
+  const handleStatusChange = (s: StatusFilter) => { setStatusFilter(s); setPage(1); };
 
   const handleSave = async (form: { name: string; description?: string; status?: 'ACTIVE' | 'INACTIVE' }) => {
     try {
@@ -153,7 +163,7 @@ export function SourcesPage() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <h3 className="font-semibold text-xl text-foreground">
-          Manbalar ({filtered.length} ta)
+          Manbalar ({sources.length} ta)
         </h3>
         <button
           onClick={() => { setEditSource(null); setShowModal(true); }}
@@ -169,7 +179,7 @@ export function SourcesPage() {
         <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <input
           value={searchInput}
-          onChange={e => setSearchInput(e.target.value)}
+          onChange={e => handleSearchChange(e.target.value)}
           placeholder="Manbalarni qidirish..."
           className="w-full pl-10 pr-5 py-3 rounded-xl border border-border bg-background text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
@@ -178,7 +188,7 @@ export function SourcesPage() {
       {/* Status Filter */}
       <div className="flex gap-2">
         <button
-          onClick={() => setStatusFilter('ALL')}
+          onClick={() => handleStatusChange('ALL')}
           className={`px-5 py-2.5 rounded-xl text-base font-medium transition-colors ${
             statusFilter === 'ALL'
               ? 'bg-blue-600 text-white'
@@ -188,7 +198,7 @@ export function SourcesPage() {
           Barchasi ({sources.length})
         </button>
         <button
-          onClick={() => setStatusFilter('ACTIVE')}
+          onClick={() => handleStatusChange('ACTIVE')}
           className={`px-5 py-2.5 rounded-xl text-base font-medium transition-colors flex items-center gap-2 ${
             statusFilter === 'ACTIVE'
               ? 'bg-green-600 text-white'
@@ -199,7 +209,7 @@ export function SourcesPage() {
           Faol ({activeCount})
         </button>
         <button
-          onClick={() => setStatusFilter('INACTIVE')}
+          onClick={() => handleStatusChange('INACTIVE')}
           className={`px-5 py-2.5 rounded-xl text-base font-medium transition-colors flex items-center gap-2 ${
             statusFilter === 'INACTIVE'
               ? 'bg-gray-600 text-white'
@@ -224,9 +234,9 @@ export function SourcesPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {filtered.map((src, idx) => (
+            {paginated.map((src, idx) => (
               <tr key={src.id} className="hover:bg-muted/30 transition-colors">
-                <td className="px-6 py-4 text-sm text-muted-foreground">{idx + 1}</td>
+                <td className="px-6 py-4 text-sm text-muted-foreground">{(page - 1) * LIMIT + idx + 1}</td>
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
@@ -277,6 +287,17 @@ export function SourcesPage() {
           </div>
         )}
       </div>
+
+      {totalPages > 1 && (
+        <PaginationBar
+          page={page}
+          totalPages={totalPages}
+          total={filtered.length}
+          limit={LIMIT}
+          onPageChange={setPage}
+          className="mt-3 mb-3"
+        />
+      )}
 
       {showModal && (
         <SourceModal
