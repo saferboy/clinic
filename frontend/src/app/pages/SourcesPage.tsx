@@ -286,18 +286,20 @@ export function SourcesPage() {
             </p>
           </div>
         )}
-      </div>
 
-      {totalPages > 1 && (
-        <PaginationBar
-          page={page}
-          totalPages={totalPages}
-          total={filtered.length}
-          limit={LIMIT}
-          onPageChange={setPage}
-          className="mt-3 mb-3"
-        />
-      )}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-6 py-3 border-t border-border">
+            <div className="text-xs text-muted-foreground">Jami {filtered.length} ta</div>
+            <PaginationBar
+              page={page}
+              totalPages={totalPages}
+              total={filtered.length}
+              limit={LIMIT}
+              onPageChange={setPage}
+            />
+          </div>
+        )}
+      </div>
 
       {showModal && (
         <SourceModal
