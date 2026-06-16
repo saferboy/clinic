@@ -47,7 +47,11 @@ export interface DailyReport {
   financialStats: DailyFinancialStats;
   doctorLoadStats: DoctorLoadStat[];
   roomOccupancyStats: RoomOccupancyStats;
-  newClientStats: { totalNewClients: number; bySource: any[]; byGender: any[] };
+  newClientStats: {
+    totalNewClients: number;
+    bySource: Array<{ sourceId: number; sourceName: string; count: number }>;
+    byGender: Array<{ gender: string; count: number; percentage: number }>;
+  };
 }
 
 // ---- Monthly ----

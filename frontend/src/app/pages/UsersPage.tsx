@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Plus, Edit, Trash2, X, Shield, Key, Loader2, Search, ChevronLeft, ChevronRight, Filter, Eye, EyeOff } from 'lucide-react';
+import { useDebounce } from '../hooks/useDebounce';
+import { Plus, Edit, Trash2, Shield, Key, Loader2, Search, Filter, Eye, EyeOff } from 'lucide-react';
+import { PaginationBar } from '../components/ui/PaginationBar';
+import { BaseModal } from '../components/ui/BaseModal';
 import { toast } from 'sonner';
 import { usersService, type UsersStats } from '../api/users.service';
 import type { FrontendUser } from '../api/users.types';
@@ -78,8 +81,6 @@ const roleAvatarColors: Record<UserRole, string> = {
   accountant: 'bg-amber-500',
 };
 
-const PAGE_SIZE_OPTIONS = [5, 10, 20, 50];
-
 // ---------- MODAL COMPONENT ----------
 function UserModal({ user, roles, onClose, onSave }: {
   user: FrontendUser | null;
@@ -140,20 +141,13 @@ function UserModal({ user, roles, onClose, onSave }: {
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      onClick={onClose}
+    <BaseModal
+      title={user?.id ? 'Foydalanuvchini tahrirlash' : 'Yangi foydalanuvchi'}
+      onClose={onClose}
+      size="md"
+      onSave={handleSubmit}
     >
-      <div
-        className="bg-background rounded-2xl shadow-2xl ring-1 ring-border/50 w-full max-w-md"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between p-6 border-b border-border">
-          <h2 className="text-lg font-semibold">{user?.id ? 'Foydalanuvchini tahrirlash' : 'Yangi foydalanuvchi'}</h2>
-          <button onClick={onClose} className="p-1.5 hover:bg-muted rounded-lg"><X size={18} /></button>
-        </div>
-        <div className="p-6 space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
               <label className="text-sm font-medium mb-1 block">Login *</label>
               <input value={form.login} onChange={e => setForm({ ...form, login: e.target.value })}
@@ -216,97 +210,7 @@ function UserModal({ user, roles, onClose, onSave }: {
               <span className="text-sm text-muted-foreground">{form.status === 'ACTIVE' ? 'Faol' : 'Nofaol'}</span>
             </div>
           </div>
-        </div>
-        <div className="flex gap-3 p-6 border-t border-border">
-          <button onClick={onClose} className="flex-1 py-2.5 border border-border rounded-xl text-sm hover:bg-muted transition-colors">Bekor qilish</button>
-          <button onClick={handleSubmit} className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm hover:bg-blue-700 transition-colors font-medium">Saqlash</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ---------- PAGINATION COMPONENT ----------
-function Pagination({
-  page,
-  limit,
-  total,
-  totalPages,
-  onPageChange,
-  onLimitChange,
-}: {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-  onPageChange: (p: number) => void;
-  onLimitChange: (l: number) => void;
-}) {
-  const start = (page - 1) * limit + 1;
-  const end = Math.min(page * limit, total);
-
-  const pages: (number | '...')[] = [];
-  if (totalPages <= 7) {
-    for (let i = 1; i <= totalPages; i++) pages.push(i);
-  } else {
-    pages.push(1);
-    if (page > 3) pages.push('...');
-    for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) {
-      pages.push(i);
-    }
-    if (page < totalPages - 2) pages.push('...');
-    pages.push(totalPages);
-  }
-
-  return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-slate-800 rounded-xl border border-border p-4">
-      <div className="flex items-center gap-3 text-sm text-muted-foreground">
-        <span>
-          {total > 0 ? `${start}-${end} / ${total}` : '0 natija'}
-        </span>
-        <select
-          value={limit}
-          onChange={e => onLimitChange(Number(e.target.value))}
-          className="px-2 py-1 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          {PAGE_SIZE_OPTIONS.map(size => (
-            <option key={size} value={size}>{size} ta</option>
-          ))}
-        </select>
-      </div>
-      <div className="flex items-center gap-1">
-        <button
-          disabled={page <= 1}
-          onClick={() => onPageChange(page - 1)}
-          className="p-2 rounded-lg hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-        >
-          <ChevronLeft size={18} />
-        </button>
-        {pages.map((p, i) =>
-          p === '...' ? (
-            <span key={`dots-${i}`} className="px-2 text-muted-foreground">…</span>
-          ) : (
-            <button
-              key={p}
-              onClick={() => onPageChange(p)}
-              className={`min-w-[36px] h-9 rounded-lg text-sm font-medium transition-colors ${p === page
-                  ? 'bg-blue-600 text-white'
-                  : 'hover:bg-muted text-muted-foreground'
-                }`}
-            >
-              {p}
-            </button>
-          )
-        )}
-        <button
-          disabled={page >= totalPages}
-          onClick={() => onPageChange(page + 1)}
-          className="p-2 rounded-lg hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-        >
-          <ChevronRight size={18} />
-        </button>
-      </div>
-    </div>
+    </BaseModal>
   );
 }
 
@@ -425,18 +329,29 @@ function PasswordResetModal({ user, onClose, onReset }: {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-background rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="flex items-center justify-between p-6 border-b border-border">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-              <Key size={18} className="text-amber-600" />
-            </div>
-            <h2 className="text-lg font-semibold">Parolni tiklash</h2>
-          </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-muted rounded-lg"><X size={18} /></button>
+    <BaseModal
+      title="Parolni tiklash"
+      onClose={onClose}
+      size="md"
+      footer={
+        <>
+          <button onClick={onClose} className="flex-1 py-2.5 border border-border rounded-xl text-sm hover:bg-muted transition-colors">Bekor qilish</button>
+          <button
+            onClick={handleReset}
+            disabled={useCustom && newPassword.length < 4}
+            className="flex-1 py-2.5 bg-amber-600 text-white rounded-xl text-sm hover:bg-amber-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Tiklanmoqda...' : 'Parolni tiklash'}
+          </button>
+        </>
+      }
+    >
+      <div className="flex items-center gap-3 mb-2">
+        <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
+          <Key size={18} className="text-amber-600" />
         </div>
-        <div className="p-6 space-y-4">
+        <p className="text-sm text-muted-foreground">Foydalanuvchi: <span className="font-medium text-foreground">{user.fullName || user.login}</span></p>
+      </div>
           <div className="bg-muted/50 rounded-xl p-4">
             <p className="text-sm text-muted-foreground">
               Foydalanuvchi: <span className="font-medium text-foreground">{user.fullName || user.login}</span>
@@ -487,24 +402,12 @@ function PasswordResetModal({ user, onClose, onReset }: {
             </div>
           )}
 
-          <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-xl p-3">
-            <p className="text-xs text-amber-700 dark:text-amber-400">
-              ⚠️ Parol o'zgargandan so'ng foydalanuvchiga yangi parolni yetkazing.
-            </p>
-          </div>
-        </div>
-        <div className="flex gap-3 p-6 border-t border-border">
-          <button onClick={onClose} className="flex-1 py-2.5 border border-border rounded-xl text-sm hover:bg-muted transition-colors">Bekor qilish</button>
-          <button
-            onClick={handleReset}
-            disabled={useCustom && newPassword.length < 4}
-            className="flex-1 py-2.5 bg-amber-600 text-white rounded-xl text-sm hover:bg-amber-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? 'Tiklanmoqda...' : 'Parolni tiklash'}
-          </button>
-        </div>
+      <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-xl p-3">
+        <p className="text-xs text-amber-700 dark:text-amber-400">
+          ⚠️ Parol o'zgargandan so'ng foydalanuvchiga yangi parolni yetkazing.
+        </p>
       </div>
-    </div>
+    </BaseModal>
   );
 }
 
@@ -523,7 +426,6 @@ export function UsersPage() {
   // Pagination & filter state
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
-  const [search, setSearch] = useState('');
   const [filterRole, setFilterRole] = useState<number | undefined>(undefined);
   const [filterStatus, setFilterStatus] = useState<'ACTIVE' | 'INACTIVE' | undefined>(undefined);
   const [totalPages, setTotalPages] = useState(0);
@@ -592,19 +494,12 @@ export function UsersPage() {
     loadStats();
   }, [loadRoles, loadStats]);
 
-  // Search debounce — taymer ref'da, kerak bo'lganda tashqaridan ham bekor qilish mumkin
-  const [searchInput, setSearchInput] = useState(search);
-  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [searchInput, setSearchInput] = useState('');
+  const search = useDebounce(searchInput, 400);
+
   useEffect(() => {
-    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
-    searchDebounceRef.current = setTimeout(() => {
-      setSearch(searchInput);
-      setPage(1);
-    }, 400);
-    return () => {
-      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
-    };
-  }, [searchInput]);
+    setPage(1);
+  }, [search]);
 
   // Saqlash (yaratish yoki yangilash)
   const handleSave = async (data: { login: string; password?: string; full_name?: string; phone?: string; role_id?: number; status?: 'ACTIVE' | 'INACTIVE' }) => {
@@ -624,7 +519,6 @@ export function UsersPage() {
       // Aks holda joriy filter (masalan, search='root') yangi userni ko'rsatmasligi mumkin.
       if (isCreate) {
         setSearchInput('');
-        setSearch('');
         setFilterRole(undefined);
         setFilterStatus(undefined);
         setPage(1);
@@ -674,7 +568,6 @@ export function UsersPage() {
   // Filter reset
   const handleResetFilters = () => {
     setSearchInput('');
-    setSearch('');
     setFilterRole(undefined);
     setFilterStatus(undefined);
     setPage(1);
@@ -720,10 +613,8 @@ export function UsersPage() {
         </div>
         <button
           onClick={() => {
-            if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
             if (loadUsersAbortRef.current) loadUsersAbortRef.current.abort();
             setSearchInput('');
-            setSearch('');
             setEditUser(null);
             setShowModal(true);
           }}
@@ -830,14 +721,16 @@ export function UsersPage() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <Pagination
-              page={page}
-              limit={limit}
-              total={total}
-              totalPages={totalPages}
-              onPageChange={(p) => { setPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-              onLimitChange={(l) => { setLimit(l); setPage(1); }}
-            />
+            <div className="bg-white dark:bg-slate-800 rounded-xl border border-border p-4">
+              <PaginationBar
+                page={page}
+                limit={limit}
+                total={total}
+                totalPages={totalPages}
+                onPageChange={p => { setPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                onLimitChange={l => { setLimit(l); setPage(1); }}
+              />
+            </div>
           )}
         </>
       ) : (

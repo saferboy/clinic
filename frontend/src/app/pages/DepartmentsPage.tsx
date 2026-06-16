@@ -1,5 +1,8 @@
-import { useState, useEffect } from 'react';
-import { Building2, Plus, Edit, X, Trash2, CheckCircle, XCircle } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { useDebounce } from '../hooks/useDebounce';
+import { Building2, Plus, Edit, Trash2, CheckCircle, XCircle } from 'lucide-react';
+import { BaseModal } from '../components/ui/BaseModal';
+import { PaginationBar } from '../components/ui/PaginationBar';
 import { departmentsApi, Department } from '../api/departments.service';
 import { toast } from 'sonner';
 import {
@@ -25,38 +28,31 @@ function DepartmentModal({ department, onClose, onSave }: {
   });
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-background rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="flex items-center justify-between p-6 border-b border-border">
-          <h2 className="text-lg font-semibold">{department?.id ? "Bo'limni tahrirlash" : "Yangi bo'lim"}</h2>
-          <button onClick={onClose} className="p-1.5 hover:bg-muted rounded-lg"><X size={18} /></button>
-        </div>
-        <div className="p-6 space-y-4">
-          <div>
-            <label className="text-sm font-medium mb-1 block">Bo'lim nomi *</label>
-            <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
-              className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Masalan: Kardiologiya" />
-          </div>
-          <div>
-            <label className="text-sm font-medium mb-1 block">Tavsif</label>
-            <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
-              className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" rows={3} placeholder="Bo'lim haqida qisqacha ma'lumot" />
-          </div>
-          <div>
-            <label className="text-sm font-medium mb-1 block">Holat</label>
-            <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value as 'ACTIVE' | 'INACTIVE' })}
-              className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <option value="ACTIVE">Faol</option>
-              <option value="INACTIVE">Nofaol</option>
-            </select>
-          </div>
-        </div>
-        <div className="flex gap-3 p-6 border-t border-border">
-          <button onClick={onClose} className="flex-1 py-2.5 border border-border rounded-xl text-sm hover:bg-muted transition-colors">Bekor qilish</button>
-          <button onClick={() => onSave(form)} className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm hover:bg-blue-700 transition-colors font-medium">Saqlash</button>
-        </div>
+    <BaseModal
+      title={department?.id ? "Bo'limni tahrirlash" : "Yangi bo'lim"}
+      onClose={onClose}
+      size="md"
+      onSave={() => onSave(form)}
+    >
+      <div>
+        <label className="text-sm font-medium mb-1 block">Bo'lim nomi *</label>
+        <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
+          className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Masalan: Kardiologiya" />
       </div>
-    </div>
+      <div>
+        <label className="text-sm font-medium mb-1 block">Tavsif</label>
+        <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
+          className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" rows={3} placeholder="Bo'lim haqida qisqacha ma'lumot" />
+      </div>
+      <div>
+        <label className="text-sm font-medium mb-1 block">Holat</label>
+        <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value as 'ACTIVE' | 'INACTIVE' })}
+          className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="ACTIVE">Faol</option>
+          <option value="INACTIVE">Nofaol</option>
+        </select>
+      </div>
+    </BaseModal>
   );
 }
 
@@ -66,12 +62,16 @@ export function DepartmentsPage() {
   const [showModal, setShowModal] = useState(false);
   const [editDepartment, setEditDepartment] = useState<Partial<Department> | null>(null);
   const [deleteDepartmentId, setDeleteDepartmentId] = useState<number | null>(null);
-  const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
+  const search = useDebounce(searchInput, 300);
   const [pagination, setPagination] = useState({ page: 1, limit: 7, total: 0, totalPages: 0 });
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
+  const fetchAbortRef = useRef<AbortController | null>(null);
 
   const fetchDepartments = async () => {
+    if (fetchAbortRef.current) fetchAbortRef.current.abort();
+    fetchAbortRef.current = new AbortController();
+    const { signal } = fetchAbortRef.current;
     try {
       setLoading(true);
       const response = await departmentsApi.findMany({
@@ -82,34 +82,26 @@ export function DepartmentsPage() {
         sortBy: 'created_at',
         sortOrder: 'desc',
       });
-      // Backend response: { message: "...", data: { data: [...], pagination: {...} } }
-      const backendData = response.data as any;
-      setDepartments(Array.isArray(backendData?.data) ? backendData.data : []);
-      if (backendData?.pagination) {
-        setPagination(prev => ({
-          ...prev,
-          ...backendData.pagination,
-        }));
-      }
+      if (signal.aborted) return;
+      const { data: deptData, pagination: pag } = response.data;
+      setDepartments(deptData);
+      setPagination(prev => ({ ...prev, ...pag }));
     } catch (error) {
+      if (signal.aborted) return;
       console.error("Bo'limlarni yuklashda xatolik:", error);
       toast.error("Bo'limlarni yuklashda xatolik yuz berdi");
     } finally {
-      setLoading(false);
+      if (!signal.aborted) setLoading(false);
     }
   };
 
-  // Search with debounce
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setSearch(searchInput);
-      setPagination(p => ({ ...p, page: 1 }));
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchInput]);
+    setPagination(p => ({ ...p, page: 1 }));
+  }, [search]);
 
   useEffect(() => {
     fetchDepartments();
+    return () => fetchAbortRef.current?.abort();
   }, [pagination.page, search, statusFilter]);
 
   const handleSave = async (form: { name: string; description?: string; status?: 'ACTIVE' | 'INACTIVE' }) => {
@@ -297,39 +289,14 @@ export function DepartmentsPage() {
 
       {/* Pagination */}
       {pagination.totalPages > 1 && (
-        <div className="flex justify-center items-center gap-3 mt-3 mb-3">
-          <button
-            onClick={() => setPagination(p => ({ ...p, page: p.page - 1 }))}
-            disabled={pagination.page === 1}
-            className="px-5 py-2.5 rounded-xl border border-border text-base disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
-          >
-            ← Oldingi
-          </button>
-
-          <div className="flex gap-1">
-            {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map(page => (
-              <button
-                key={page}
-                onClick={() => setPagination(p => ({ ...p, page }))}
-                className={`w-10 h-10 rounded-lg text-base font-medium transition-colors ${
-                  page === pagination.page
-                    ? 'bg-blue-600 text-white'
-                    : 'border border-border hover:bg-muted'
-                }`}
-              >
-                {page}
-              </button>
-            ))}
-          </div>
-
-          <button
-            onClick={() => setPagination(p => ({ ...p, page: p.page + 1 }))}
-            disabled={pagination.page >= pagination.totalPages}
-            className="px-5 py-2.5 rounded-xl border border-border text-base disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
-          >
-            Keyingi →
-          </button>
-        </div>
+        <PaginationBar
+          page={pagination.page}
+          totalPages={pagination.totalPages}
+          total={pagination.total}
+          limit={pagination.limit}
+          onPageChange={p => setPagination(prev => ({ ...prev, page: p }))}
+          className="mt-3 mb-3"
+        />
       )}
 
       {showModal && (

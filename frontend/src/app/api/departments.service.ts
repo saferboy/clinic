@@ -9,17 +9,21 @@ export interface Department {
   updated_at: string;
 }
 
+interface Pagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
 export interface DepartmentsResponse {
   success: boolean;
   message: string;
-  data: Department[];
-  pagination?: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-    hasNextPage: boolean;
-    hasPrevPage: boolean;
+  data: {
+    data: Department[];
+    pagination: Pagination;
   };
 }
 

@@ -47,6 +47,33 @@ export interface ServicesQuery {
   sortOrder?: 'asc' | 'desc';
 }
 
+interface Pagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
+export interface ServiceListResponse {
+  success: boolean;
+  message: string;
+  data: BackendService[];
+  pagination: Pagination;
+}
+
+interface ServiceSingleResponse {
+  success: boolean;
+  message: string;
+  data: BackendService;
+}
+
+interface ServiceDeleteResponse {
+  success: boolean;
+  message: string;
+}
+
 export const servicesApi = {
   findMany: (query?: ServicesQuery) => {
     const params = new URLSearchParams();
@@ -60,25 +87,25 @@ export const servicesApi = {
     if (query?.sortBy) params.set('sortBy', query.sortBy);
     if (query?.sortOrder) params.set('sortOrder', query.sortOrder);
     const qs = params.toString();
-    return api.get<any>(`/services${qs ? `?${qs}` : ''}`, true);
+    return api.get<ServiceListResponse>(`/services${qs ? `?${qs}` : ''}`, true);
   },
 
   findByDepartment: (departmentId: number, status = 'ACTIVE') => {
-    return api.get<any>(`/services/departments/${departmentId}?status=${status}`, true);
+    return api.get<ServiceListResponse>(`/services/departments/${departmentId}?status=${status}`, true);
   },
 
   findOne: (id: number) =>
-    api.get<any>(`/services/${id}`, true),
+    api.get<ServiceSingleResponse>(`/services/${id}`, true),
 
   create: (dto: CreateServiceDto) =>
-    api.post<any>('/services', dto, true),
+    api.post<ServiceSingleResponse>('/services', dto, true),
 
   update: (id: number, dto: UpdateServiceDto) =>
-    api.patch<any>(`/services/${id}`, dto, true),
+    api.patch<ServiceSingleResponse>(`/services/${id}`, dto, true),
 
   updatePrice: (id: number, dto: UpdateServicePriceDto) =>
-    api.patch<any>(`/services/${id}/price`, dto, true),
+    api.patch<ServiceSingleResponse>(`/services/${id}/price`, dto, true),
 
   remove: (id: number) =>
-    api.delete<any>(`/services/${id}`, true),
+    api.delete<ServiceDeleteResponse>(`/services/${id}`, true),
 };

@@ -1,5 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Plus, Edit, Trash2, X, Shield, Key, Loader2, Search, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Plus, Edit, Trash2, Shield, Loader2, Search, Filter } from 'lucide-react';
+import { PaginationBar } from '../components/ui/PaginationBar';
+import { BaseModal } from '../components/ui/BaseModal';
+import { formatDate } from '../utils/formatters';
 import { toast } from 'sonner';
 import { userRolesApi, UserRole, CreateUserRoleDto, UpdateUserRoleDto } from '../api/user-roles.service';
 
@@ -19,8 +22,12 @@ export function UserRolesPage() {
   const [limit, setLimit] = useState(10);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+  const fetchAbortRef = useRef<AbortController | null>(null);
 
   const fetchRoles = useCallback(async () => {
+    if (fetchAbortRef.current) fetchAbortRef.current.abort();
+    fetchAbortRef.current = new AbortController();
+    const { signal } = fetchAbortRef.current;
     setLoading(true);
     try {
       const response = await userRolesApi.findMany({
@@ -31,22 +38,22 @@ export function UserRolesPage() {
         sortBy: 'name',
         sortOrder: 'asc' as const,
       });
-
-      const backendData = response.data as any;
-      setRoles(Array.isArray(backendData?.data) ? backendData.data : []);
-      if (backendData?.pagination) {
-        setTotal(backendData.pagination.total ?? 0);
-        setTotalPages(backendData.pagination.totalPages ?? 0);
-      }
+      if (signal.aborted) return;
+      const { data: rolesData, pagination: pag } = response.data;
+      setRoles(rolesData);
+      setTotal(pag.total);
+      setTotalPages(pag.totalPages);
     } catch (error: any) {
+      if (signal.aborted) return;
       toast.error(error.message || 'Rollarni yuklashda xatolik');
     } finally {
-      setLoading(false);
+      if (!signal.aborted) setLoading(false);
     }
   }, [page, limit, search, statusFilter]);
 
   useEffect(() => {
     fetchRoles();
+    return () => fetchAbortRef.current?.abort();
   }, [fetchRoles]);
 
   const handleSave = async (dto: CreateUserRoleDto | UpdateUserRoleDto) => {
@@ -211,7 +218,7 @@ export function UserRolesPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-muted-foreground text-xs">
-                        {new Date(role.created_at).toLocaleDateString('uz-UZ')}
+                        {formatDate(role.created_at)}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1">
@@ -239,26 +246,14 @@ export function UserRolesPage() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between px-4 py-3 border-t border-border">
-                <div className="text-xs text-muted-foreground">
-                  {startItem}-{endItem} / {total} ta rol
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                    className="p-2 rounded-lg border border-border hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <ChevronLeft size={16} />
-                  </button>
-                  <button
-                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                    disabled={page === totalPages}
-                    className="p-2 rounded-lg border border-border hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <ChevronRight size={16} />
-                  </button>
-                </div>
+              <div className="border-t border-border px-4 py-3">
+                <PaginationBar
+                  page={page}
+                  totalPages={totalPages}
+                  total={total}
+                  limit={limit}
+                  onPageChange={setPage}
+                />
               </div>
             )}
 
@@ -388,21 +383,13 @@ function RoleModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-background rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-
-        {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-border flex-shrink-0">
-          <h2 className="text-base font-semibold">
-            {role?.id ? 'Rolni tahrirlash' : 'Yangi rol yaratish'}
-          </h2>
-          <button onClick={onClose} className="p-1.5 hover:bg-muted rounded-lg">
-            <X size={18} />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className="p-5 space-y-4 overflow-y-auto flex-1">
+    <BaseModal
+      title={role?.id ? 'Rolni tahrirlash' : 'Yangi rol yaratish'}
+      onClose={onClose}
+      size="2xl"
+      scrollable
+      onSave={handleSubmit}
+    >
 
           {/* Nomi + Tavsif */}
           <div className="grid grid-cols-2 gap-4">
@@ -507,25 +494,7 @@ function RoleModal({
             </div>
           </div>
 
-        </div>
-
-        {/* Footer */}
-        <div className="flex gap-3 p-5 border-t border-border flex-shrink-0">
-          <button
-            onClick={onClose}
-            className="flex-1 py-2.5 border border-border rounded-xl text-sm hover:bg-muted transition-colors"
-          >
-            Bekor qilish
-          </button>
-          <button
-            onClick={handleSubmit}
-            className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm hover:bg-blue-700 transition-colors font-medium"
-          >
-            Saqlash
-          </button>
-        </div>
-      </div>
-    </div>
+    </BaseModal>
   );
 }
 
@@ -540,32 +509,25 @@ function DeleteConfirmDialog({
   onConfirm: () => void;
 }) {
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-background rounded-2xl shadow-2xl w-full max-w-sm">
-        <div className="p-6 text-center">
-          <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
-            <Trash2 size={24} className="text-red-600" />
-          </div>
-          <h3 className="text-lg font-semibold mb-2">Rolni o'chirish</h3>
-          <p className="text-sm text-muted-foreground mb-6">
-            <span className="font-medium">{role.name}</span> rolini o'chirmoqchimisiz? Bu amal qaytarib bo'lmaydi.
-          </p>
-          <div className="flex gap-3">
-            <button
-              onClick={onClose}
-              className="flex-1 py-2.5 border border-border rounded-xl text-sm hover:bg-muted transition-colors"
-            >
-              Bekor qilish
-            </button>
-            <button
-              onClick={onConfirm}
-              className="flex-1 py-2.5 bg-red-600 text-white rounded-xl text-sm hover:bg-red-700 transition-colors font-medium"
-            >
-              O'chirish
-            </button>
-          </div>
+    <BaseModal
+      title="Rolni o'chirish"
+      onClose={onClose}
+      size="sm"
+      footer={
+        <>
+          <button onClick={onClose} className="flex-1 py-2.5 border border-border rounded-xl text-sm hover:bg-muted transition-colors">Bekor qilish</button>
+          <button onClick={onConfirm} className="flex-1 py-2.5 bg-red-600 text-white rounded-xl text-sm hover:bg-red-700 transition-colors font-medium">O'chirish</button>
+        </>
+      }
+    >
+      <div className="text-center py-2">
+        <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
+          <Trash2 size={24} className="text-red-600" />
         </div>
+        <p className="text-sm text-muted-foreground">
+          <span className="font-medium text-foreground">{role.name}</span> rolini o'chirmoqchimisiz? Bu amal qaytarib bo'lmaydi.
+        </p>
       </div>
-    </div>
+    </BaseModal>
   );
 }

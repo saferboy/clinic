@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react';
-import { BedDouble, CheckCircle, AlertCircle, Wrench, Plus, Edit, X, Trash2 } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { BedDouble, CheckCircle, AlertCircle, Wrench, Plus, Edit, Trash2, X } from 'lucide-react';
+import { BaseModal } from '../components/ui/BaseModal';
+import { PaginationBar } from '../components/ui/PaginationBar';
 import { roomsApi, CreateRoomDto, RoomStats } from '../api/rooms.service';
 import { departmentsApi, Department } from '../api/departments.service';
 import type { Room } from '../types';
@@ -37,57 +39,50 @@ function RoomModal({ room, onClose, onSave, departments }: {
   });
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-background rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="flex items-center justify-between p-6 border-b border-border">
-          <h2 className="text-lg font-semibold">{room?.id ? 'Xonani tahrirlash' : 'Yangi xona'}</h2>
-          <button onClick={onClose} className="p-1.5 hover:bg-muted rounded-lg"><X size={18} /></button>
+    <BaseModal
+      title={room?.id ? 'Xonani tahrirlash' : 'Yangi xona'}
+      onClose={onClose}
+      size="md"
+      onSave={() => onSave(form)}
+    >
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-sm font-medium mb-1 block">Xona nomi</label>
+          <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
+            className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Terapiya Kabineti 1" />
         </div>
-        <div className="p-6 space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-sm font-medium mb-1 block">Xona nomi</label>
-              <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Terapiya Kabineti 1" />
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-1 block">Xona raqami</label>
-              <input value={form.room_number || ''} onChange={e => setForm({ ...form, room_number: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="101" />
-            </div>
-          </div>
-          <div>
-            <label className="text-sm font-medium mb-1 block">Bo'lim</label>
-            <select value={form.department_id || ''} onChange={e => setForm({ ...form, department_id: Number(e.target.value) || undefined })}
-              className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <option value="">Bo'limni tanlang</option>
-              {(departments || []).map(dept => (
-                <option key={dept.id} value={dept.id}>{dept.name}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="text-sm font-medium mb-1 block">Holat</label>
-            <select value={form.status || 'AVAILABLE'} onChange={e => setForm({ ...form, status: e.target.value as Room['status'] })}
-              className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <option value="AVAILABLE">Bo'sh</option>
-              <option value="OCCUPIED">Band</option>
-              <option value="MAINTENANCE">Ta'mirda</option>
-              <option value="CLOSED">Yopiq</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-sm font-medium mb-1 block">Tavsif</label>
-            <textarea value={form.description || ''} onChange={e => setForm({ ...form, description: e.target.value })}
-              className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" rows={3} placeholder="2 ta karavot, kompyuter" />
-          </div>
-        </div>
-        <div className="flex gap-3 p-6 border-t border-border">
-          <button onClick={onClose} className="flex-1 py-2.5 border border-border rounded-xl text-sm hover:bg-muted transition-colors">Bekor qilish</button>
-          <button onClick={() => onSave(form)} className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm hover:bg-blue-700 transition-colors font-medium">Saqlash</button>
+        <div>
+          <label className="text-sm font-medium mb-1 block">Xona raqami</label>
+          <input value={form.room_number || ''} onChange={e => setForm({ ...form, room_number: e.target.value })}
+            className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="101" />
         </div>
       </div>
-    </div>
+      <div>
+        <label className="text-sm font-medium mb-1 block">Bo'lim</label>
+        <select value={form.department_id || ''} onChange={e => setForm({ ...form, department_id: Number(e.target.value) || undefined })}
+          className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="">Bo'limni tanlang</option>
+          {(departments || []).map(dept => (
+            <option key={dept.id} value={dept.id}>{dept.name}</option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label className="text-sm font-medium mb-1 block">Holat</label>
+        <select value={form.status || 'AVAILABLE'} onChange={e => setForm({ ...form, status: e.target.value as Room['status'] })}
+          className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="AVAILABLE">Bo'sh</option>
+          <option value="OCCUPIED">Band</option>
+          <option value="MAINTENANCE">Ta'mirda</option>
+          <option value="CLOSED">Yopiq</option>
+        </select>
+      </div>
+      <div>
+        <label className="text-sm font-medium mb-1 block">Tavsif</label>
+        <textarea value={form.description || ''} onChange={e => setForm({ ...form, description: e.target.value })}
+          className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" rows={3} placeholder="2 ta karavot, kompyuter" />
+      </div>
+    </BaseModal>
   );
 }
 
@@ -136,27 +131,28 @@ export function RoomsPage() {
   const [deleteRoomId, setDeleteRoomId] = useState<number | null>(null);
   const [stats, setStats] = useState<RoomStats>({ total: 0, available: 0, occupied: 0, maintenance: 0, closed: 0 });
   const [departments, setDepartments] = useState<Department[]>([]);
+  const fetchAbortRef = useRef<AbortController | null>(null);
 
   const fetchRooms = async () => {
+    if (fetchAbortRef.current) fetchAbortRef.current.abort();
+    fetchAbortRef.current = new AbortController();
+    const { signal } = fetchAbortRef.current;
     try {
       setLoading(true);
       const params: any = { page: pagination.page, limit: pagination.limit };
-      if (statusFilter !== 'ALL') {
-        params.status = statusFilter;
-      }
+      if (statusFilter !== 'ALL') params.status = statusFilter;
       const response = await roomsApi.findMany(params);
+      if (signal.aborted) return;
       setRooms(response.data);
       if (response.pagination) {
-        setPagination(prev => ({
-          ...prev,
-          ...response.pagination,
-        }));
+        setPagination(prev => ({ ...prev, ...response.pagination }));
       }
     } catch (error) {
+      if (signal.aborted) return;
       console.error('Xonalarni yuklashda xatolik:', error);
       toast.error('Xonalarni yuklashda xatolik yuz berdi');
     } finally {
-      setLoading(false);
+      if (!signal.aborted) setLoading(false);
     }
   };
 
@@ -184,6 +180,7 @@ export function RoomsPage() {
     fetchRooms();
     fetchStats();
     fetchDepartments();
+    return () => fetchAbortRef.current?.abort();
   }, [pagination.page, pagination.limit, statusFilter]);
 
   const handleSave = async (form: CreateRoomDto) => {
@@ -435,39 +432,14 @@ export function RoomsPage() {
 
       {/* Pagination */}
       {pagination.totalPages > 1 && (
-        <div className="flex justify-center items-center gap-3 mt-1 mb-4">
-          <button
-            onClick={() => setPagination(p => ({ ...p, page: p.page - 1 }))}
-            disabled={pagination.page === 1}
-            className="px-4 py-2 rounded-xl border border-border text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
-          >
-            ← Oldingi
-          </button>
-
-          <div className="flex gap-1">
-            {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map(page => (
-              <button
-                key={page}
-                onClick={() => setPagination(p => ({ ...p, page }))}
-                className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
-                  page === pagination.page
-                    ? 'bg-blue-600 text-white'
-                    : 'border border-border hover:bg-muted'
-                }`}
-              >
-                {page}
-              </button>
-            ))}
-          </div>
-
-          <button
-            onClick={() => setPagination(p => ({ ...p, page: p.page + 1 }))}
-            disabled={pagination.page >= pagination.totalPages}
-            className="px-4 py-2 rounded-xl border border-border text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
-          >
-            Keyingi →
-          </button>
-        </div>
+        <PaginationBar
+          page={pagination.page}
+          totalPages={pagination.totalPages}
+          total={pagination.total}
+          limit={pagination.limit}
+          onPageChange={p => setPagination(prev => ({ ...prev, page: p }))}
+          className="mt-1 mb-4"
+        />
       )}
 
       {showModal && (

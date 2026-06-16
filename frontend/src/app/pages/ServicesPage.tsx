@@ -1,5 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus, Edit, Trash2, Search, X, DollarSign, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useDebounce } from '../hooks/useDebounce';
+import { Plus, Edit, Trash2, Search, DollarSign } from 'lucide-react';
+import { PaginationBar } from '../components/ui/PaginationBar';
+import { BaseModal } from '../components/ui/BaseModal';
+import { formatCurrency } from '../utils/formatters';
 import {
   servicesApi, BackendService, CreateServiceDto, UpdateServicePriceDto, ServiceStatus,
 } from '../api/services.service';
@@ -27,10 +31,6 @@ const STATUS_COLORS: Record<ServiceStatus, string> = {
   INACTIVE: 'bg-gray-100 text-gray-600',
   ARCHIVED: 'bg-amber-100 text-amber-700',
 };
-
-function formatCurrency(v: number) {
-  return new Intl.NumberFormat('uz-UZ').format(v) + " so'm";
-}
 
 function ServiceModal({ service, departments, onClose, onSave }: {
   service: BackendService | null;
@@ -64,13 +64,13 @@ function ServiceModal({ service, departments, onClose, onSave }: {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-background rounded-2xl shadow-2xl w-full max-w-lg">
-        <div className="flex items-center justify-between p-6 border-b border-border">
-          <h2 className="text-lg font-semibold">{service ? 'Xizmatni tahrirlash' : 'Yangi xizmat'}</h2>
-          <button onClick={onClose} className="p-1.5 hover:bg-muted rounded-lg"><X size={18} /></button>
-        </div>
-        <div className="p-6 space-y-4">
+    <BaseModal
+      title={service ? 'Xizmatni tahrirlash' : 'Yangi xizmat'}
+      onClose={onClose}
+      size="lg"
+      onSave={handleSubmit}
+      saveLoading={loading}
+    >
           <div>
             <label className="text-sm font-medium mb-1 block">Xizmat nomi *</label>
             <input
@@ -141,21 +141,7 @@ function ServiceModal({ service, departments, onClose, onSave }: {
               placeholder="Ixtiyoriy tavsif..."
             />
           </div>
-        </div>
-        <div className="flex gap-3 p-6 border-t border-border">
-          <button onClick={onClose} className="flex-1 py-2.5 border border-border rounded-xl text-sm hover:bg-muted transition-colors">
-            Bekor qilish
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm hover:bg-blue-700 transition-colors font-medium disabled:opacity-60"
-          >
-            {loading ? 'Saqlanmoqda...' : 'Saqlash'}
-          </button>
-        </div>
-      </div>
-    </div>
+    </BaseModal>
   );
 }
 
@@ -176,52 +162,38 @@ function PriceModal({ service, onClose, onSave }: {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-background rounded-2xl shadow-2xl w-full max-w-sm">
-        <div className="flex items-center justify-between p-6 border-b border-border">
-          <h2 className="text-lg font-semibold">Narxni yangilash</h2>
-          <button onClick={onClose} className="p-1.5 hover:bg-muted rounded-lg"><X size={18} /></button>
-        </div>
-        <div className="p-6 space-y-4">
-          <p className="text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">{service.name}</span>
-            {' '}— hozirgi narx:{' '}
-            <span className="font-semibold text-foreground">{formatCurrency(service.price)}</span>
-          </p>
-          <div>
-            <label className="text-sm font-medium mb-1 block">Yangi narx (so'm) *</label>
-            <input
-              type="number"
-              value={price}
-              onChange={e => setPrice(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              min={0}
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium mb-1 block">Sabab (ixtiyoriy)</label>
-            <input
-              value={reason}
-              onChange={e => setReason(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Masalan: Narxlar indeksatsiyasi"
-            />
-          </div>
-        </div>
-        <div className="flex gap-3 p-6 border-t border-border">
-          <button onClick={onClose} className="flex-1 py-2.5 border border-border rounded-xl text-sm hover:bg-muted transition-colors">
-            Bekor qilish
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm hover:bg-blue-700 transition-colors font-medium disabled:opacity-60"
-          >
-            {loading ? 'Saqlanmoqda...' : 'Saqlash'}
-          </button>
-        </div>
+    <BaseModal
+      title="Narxni yangilash"
+      onClose={onClose}
+      size="sm"
+      onSave={handleSubmit}
+      saveLoading={loading}
+    >
+      <p className="text-sm text-muted-foreground">
+        <span className="font-medium text-foreground">{service.name}</span>
+        {' '}— hozirgi narx:{' '}
+        <span className="font-semibold text-foreground">{formatCurrency(service.price)}</span>
+      </p>
+      <div>
+        <label className="text-sm font-medium mb-1 block">Yangi narx (so'm) *</label>
+        <input
+          type="number"
+          value={price}
+          onChange={e => setPrice(e.target.value)}
+          className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          min={0}
+        />
       </div>
-    </div>
+      <div>
+        <label className="text-sm font-medium mb-1 block">Sabab (ixtiyoriy)</label>
+        <input
+          value={reason}
+          onChange={e => setReason(e.target.value)}
+          className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="Masalan: Narxlar indeksatsiyasi"
+        />
+      </div>
+    </BaseModal>
   );
 }
 
@@ -232,7 +204,7 @@ export function ServicesPage() {
   const [pagination, setPagination] = useState({ page: 1, limit: 9, total: 0, totalPages: 1 });
 
   const [searchInput, setSearchInput] = useState('');
-  const [search, setSearch] = useState('');
+  const search = useDebounce(searchInput, 300);
   const [deptFilter, setDeptFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
@@ -242,21 +214,18 @@ export function ServicesPage() {
   const [editService, setEditService] = useState<BackendService | null>(null);
   const [priceService, setPriceService] = useState<BackendService | null>(null);
   const [deleteService, setDeleteService] = useState<BackendService | null>(null);
-
-  const fetchTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const fetchAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    departmentsApi.findAll().then((res: any) => {
-      const data = Array.isArray(res?.data)
-        ? res.data
-        : Array.isArray(res?.data?.data)
-        ? res.data.data
-        : [];
-      setDepartments(data);
+    departmentsApi.findAll().then(res => {
+      setDepartments(res.data.data);
     }).catch(() => {});
   }, []);
 
   const fetchServices = async (overridePage?: number) => {
+    if (fetchAbortRef.current) fetchAbortRef.current.abort();
+    fetchAbortRef.current = new AbortController();
+    const { signal } = fetchAbortRef.current;
     try {
       setLoading(true);
       const [res, activeRes] = await Promise.all([
@@ -268,37 +237,32 @@ export function ServicesPage() {
           status: statusFilter || undefined,
           sortBy: 'created_at',
           sortOrder: 'desc',
-        }) as any,
+        }),
         servicesApi.findMany({
           limit: 1,
           status: 'ACTIVE',
           department_id: deptFilter ? Number(deptFilter) : undefined,
-        }) as any,
+        }),
       ]);
-      setServices(Array.isArray(res?.data) ? res.data : []);
-      if (res?.pagination) {
-        setPagination(prev => ({ ...prev, ...res.pagination }));
-      }
-      setActiveTotal(activeRes?.pagination?.total ?? 0);
+      if (signal.aborted) return;
+      setServices(res.data);
+      setPagination(prev => ({ ...prev, ...res.pagination }));
+      setActiveTotal(activeRes.pagination.total);
     } catch (error: any) {
+      if (signal.aborted) return;
       toast.error(error?.message || 'Xizmatlarni yuklashda xatolik');
     } finally {
-      setLoading(false);
+      if (!signal.aborted) setLoading(false);
     }
   };
 
-  // Search debounce
   useEffect(() => {
-    clearTimeout(fetchTimerRef.current);
-    fetchTimerRef.current = setTimeout(() => {
-      setSearch(searchInput);
-      setPagination(p => ({ ...p, page: 1 }));
-    }, 300);
-    return () => clearTimeout(fetchTimerRef.current);
-  }, [searchInput]);
+    setPagination(p => ({ ...p, page: 1 }));
+  }, [search]);
 
   useEffect(() => {
     fetchServices();
+    return () => fetchAbortRef.current?.abort();
   }, [pagination.page, search, deptFilter, statusFilter]);
 
   const handleDeptFilter = (val: string) => {
@@ -517,60 +481,14 @@ export function ServicesPage() {
         </div>
 
         {pagination.totalPages > 1 && (
-          <div className="flex items-center justify-center px-4 py-3 border-t border-border">
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setPagination(p => ({ ...p, page: Math.max(1, p.page - 1) }))}
-                disabled={pagination.page === 1}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronLeft size={14} />
-                Oldingi
-              </button>
-
-              <div className="flex items-center gap-1 mx-1">
-                {(() => {
-                  const total = pagination.totalPages;
-                  const cur = pagination.page;
-                  const pages: (number | '...')[] = [];
-                  if (total <= 7) {
-                    for (let i = 1; i <= total; i++) pages.push(i);
-                  } else {
-                    pages.push(1);
-                    if (cur > 3) pages.push('...');
-                    for (let i = Math.max(2, cur - 1); i <= Math.min(total - 1, cur + 1); i++) pages.push(i);
-                    if (cur < total - 2) pages.push('...');
-                    pages.push(total);
-                  }
-                  return pages.map((p, i) =>
-                    p === '...' ? (
-                      <span key={`dots-${i}`} className="w-8 text-center text-xs text-muted-foreground">...</span>
-                    ) : (
-                      <button
-                        key={p}
-                        onClick={() => setPagination(prev => ({ ...prev, page: p as number }))}
-                        className={`w-8 h-8 rounded-lg text-xs font-medium transition-colors ${
-                          p === cur
-                            ? 'bg-blue-600 text-white shadow-sm'
-                            : 'border border-border hover:bg-muted text-foreground'
-                        }`}
-                      >
-                        {p}
-                      </button>
-                    )
-                  );
-                })()}
-              </div>
-
-              <button
-                onClick={() => setPagination(p => ({ ...p, page: Math.min(p.totalPages, p.page + 1) }))}
-                disabled={pagination.page === pagination.totalPages}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
-                Keyingi
-                <ChevronRight size={14} />
-              </button>
-            </div>
+          <div className="border-t border-border px-4 py-3">
+            <PaginationBar
+              page={pagination.page}
+              totalPages={pagination.totalPages}
+              total={pagination.total}
+              limit={pagination.limit}
+              onPageChange={p => setPagination(prev => ({ ...prev, page: p }))}
+            />
           </div>
         )}
 

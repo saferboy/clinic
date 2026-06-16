@@ -176,29 +176,29 @@ export const clientsApi = {
    * Mijoz balansini olish
    */
   getBalance: (id: number) =>
-    api.get<ApiResponse<any>>(`/clients/${id}/balance`, true),
+    api.get<ApiResponse<{ balance: number }>>(`/clients/${id}/balance`, true),
 
   /**
    * Mijoz tashriflarini olish
    */
-  getVisits: (id: number, query?: any) => {
+  getVisits: (id: number, query?: { page?: number; limit?: number }) => {
     const params = new URLSearchParams();
     if (query?.page) params.set('page', String(query.page));
     if (query?.limit) params.set('limit', String(query.limit));
     const queryString = params.toString();
-    return api.get<ApiResponse<any>>(`/clients/${id}/visits${queryString ? `?${queryString}` : ''}`, true);
+    return api.get<ApiResponse<Record<string, unknown>[]>>(`/clients/${id}/visits${queryString ? `?${queryString}` : ''}`, true);
   },
 
   /**
    * Mijoz to'lovlarini olish
    */
-  getPayments: (id: number, query?: any) => {
+  getPayments: (id: number, query?: { page?: number; limit?: number }) => {
     const params = new URLSearchParams();
     if (query?.page) params.set('page', String(query.page));
     if (query?.limit) params.set('limit', String(query.limit));
     const queryString = params.toString();
-    return api.get<ApiResponse<any>>(`/clients/${id}/payments${queryString ? `?${queryString}` : ''}`, true);
+    return api.get<ApiResponse<Record<string, unknown>[]>>(`/clients/${id}/payments${queryString ? `?${queryString}` : ''}`, true);
   },
 
-  getGroups: () => api.get<any>('/client-groups?limit=100', true),
+  getGroups: () => api.get<{ success: boolean; message: string; data: { data: { id: number; name: string }[]; pagination: { total: number } } }>('/client-groups?limit=100', true),
 };

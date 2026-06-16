@@ -774,7 +774,7 @@ export class ClientsService {
         district: client.district?.name || '',
         group: client.group?.name || '',
         source: client.source?.name || '',
-        balance: client.balance,
+        balance: Number(client.balance),
         visits: client._count?.visits || 0,
         status: client.status === 'ACTIVE' ? 'Faol' : client.status === 'INACTIVE' ? 'Nofaol' : 'Arxiv',
         created_at: new Date(client.created_at).toLocaleString('uz-UZ'),

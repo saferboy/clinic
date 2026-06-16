@@ -1,5 +1,8 @@
-import { useState, useEffect } from 'react';
-import { UsersRound, Plus, Edit, X, Trash2, Search, CheckCircle, XCircle } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { useDebounce } from '../hooks/useDebounce';
+import { UsersRound, Plus, Edit, Trash2, Search, CheckCircle, XCircle } from 'lucide-react';
+import { BaseModal } from '../components/ui/BaseModal';
+import { PaginationBar } from '../components/ui/PaginationBar';
 import { clientGroupsApi, ClientGroup } from '../api/client-groups.service';
 import { toast } from 'sonner';
 import {
@@ -25,38 +28,31 @@ function ClientGroupModal({ clientGroup, onClose, onSave }: {
   });
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-background rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="flex items-center justify-between p-6 border-b border-border">
-          <h2 className="text-lg font-semibold">{clientGroup?.id ? "Guruhni tahrirlash" : "Yangi mijoz guruhi"}</h2>
-          <button type="button" onClick={onClose} className="p-1.5 hover:bg-muted rounded-lg"><X size={18} /></button>
-        </div>
-        <div className="p-6 space-y-4">
-          <div>
-            <label htmlFor="group-name" className="text-sm font-medium mb-1 block">Guruh nomi *</label>
-            <input id="group-name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
-              className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Masalan: VIP mijozlar" />
-          </div>
-          <div>
-            <label htmlFor="group-desc" className="text-sm font-medium mb-1 block">Tavsif</label>
-            <textarea id="group-desc" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
-              className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" rows={3} placeholder="Guruh haqida qisqacha ma'lumot" />
-          </div>
-          <div>
-            <label htmlFor="group-status" className="text-sm font-medium mb-1 block">Holat</label>
-            <select id="group-status" value={form.status} onChange={e => setForm({ ...form, status: e.target.value as 'ACTIVE' | 'INACTIVE' })}
-              className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <option value="ACTIVE">Faol</option>
-              <option value="INACTIVE">Nofaol</option>
-            </select>
-          </div>
-        </div>
-        <div className="flex gap-3 p-6 border-t border-border">
-          <button type="button" onClick={onClose} className="flex-1 py-2.5 border border-border rounded-xl text-sm hover:bg-muted transition-colors">Bekor qilish</button>
-          <button type="button" onClick={() => onSave(form)} className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm hover:bg-blue-700 transition-colors font-medium">Saqlash</button>
-        </div>
+    <BaseModal
+      title={clientGroup?.id ? 'Guruhni tahrirlash' : 'Yangi mijoz guruhi'}
+      onClose={onClose}
+      size="md"
+      onSave={() => onSave(form)}
+    >
+      <div>
+        <label htmlFor="group-name" className="text-sm font-medium mb-1 block">Guruh nomi *</label>
+        <input id="group-name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
+          className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Masalan: VIP mijozlar" />
       </div>
-    </div>
+      <div>
+        <label htmlFor="group-desc" className="text-sm font-medium mb-1 block">Tavsif</label>
+        <textarea id="group-desc" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
+          className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" rows={3} placeholder="Guruh haqida qisqacha ma'lumot" />
+      </div>
+      <div>
+        <label htmlFor="group-status" className="text-sm font-medium mb-1 block">Holat</label>
+        <select id="group-status" value={form.status} onChange={e => setForm({ ...form, status: e.target.value as 'ACTIVE' | 'INACTIVE' })}
+          className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="ACTIVE">Faol</option>
+          <option value="INACTIVE">Nofaol</option>
+        </select>
+      </div>
+    </BaseModal>
   );
 }
 
@@ -66,12 +62,16 @@ export function ClientGroupsPage() {
   const [showModal, setShowModal] = useState(false);
   const [editClientGroup, setEditClientGroup] = useState<Partial<ClientGroup> | null>(null);
   const [deleteClientGroupId, setDeleteClientGroupId] = useState<number | null>(null);
-  const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
+  const search = useDebounce(searchInput, 300);
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
   const [pagination, setPagination] = useState({ page: 1, limit: 8, total: 0, totalPages: 0 });
+  const fetchAbortRef = useRef<AbortController | null>(null);
 
   const fetchClientGroups = async () => {
+    if (fetchAbortRef.current) fetchAbortRef.current.abort();
+    fetchAbortRef.current = new AbortController();
+    const { signal } = fetchAbortRef.current;
     try {
       setLoading(true);
       const response = await clientGroupsApi.findMany({
@@ -82,34 +82,31 @@ export function ClientGroupsPage() {
         sortBy: 'created_at',
         sortOrder: 'desc',
       });
-      const backendData = response.data as any;
-      setClientGroups(Array.isArray(backendData?.data) ? backendData.data : []);
-      if (backendData?.pagination) {
-        setPagination(prev => ({
-          ...prev,
-          total: backendData.pagination.total || 0,
-          totalPages: backendData.pagination.totalPages || 0,
-          limit: backendData.pagination.limit || 8,
-        }));
-      }
+      if (signal.aborted) return;
+      const { data: groupsData, pagination: pag } = response.data;
+      setClientGroups(groupsData);
+      setPagination(prev => ({
+        ...prev,
+        total: pag.total,
+        totalPages: pag.totalPages,
+        limit: pag.limit,
+      }));
     } catch (error) {
+      if (signal.aborted) return;
       console.error("Mijoz guruhlarini yuklashda xatolik:", error);
       toast.error("Mijoz guruhlarini yuklashda xatolik yuz berdi");
     } finally {
-      setLoading(false);
+      if (!signal.aborted) setLoading(false);
     }
   };
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setSearch(searchInput);
-      setPagination(p => ({ ...p, page: 1 }));
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchInput]);
+    setPagination(p => ({ ...p, page: 1 }));
+  }, [search]);
 
   useEffect(() => {
     fetchClientGroups();
+    return () => fetchAbortRef.current?.abort();
   }, [pagination.page, search, statusFilter]);
 
   const handleSave = async (form: { name: string; description?: string; status?: 'ACTIVE' | 'INACTIVE' }) => {
@@ -266,40 +263,16 @@ export function ClientGroupsPage() {
         )}
       </div>
 
-      <div className="flex justify-center items-center gap-3 mt-3 mb-3">
-        <button
-          type="button"
-          onClick={() => setPagination(p => ({ ...p, page: p.page - 1 }))}
-          disabled={pagination.page === 1}
-          className="px-5 py-2.5 rounded-xl border border-border text-base disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
-        >
-          ← Oldingi
-        </button>
-
-        <div className="flex gap-1">
-          {Array.from({ length: Math.max(1, pagination.totalPages) }, (_, i) => i + 1).map(page => (
-            <button
-              type="button"
-              key={page}
-              onClick={() => setPagination(p => ({ ...p, page }))}
-              className={`w-10 h-10 rounded-lg text-base font-medium transition-colors ${
-                page === pagination.page ? 'bg-blue-600 text-white' : 'border border-border hover:bg-muted'
-              }`}
-            >
-              {page}
-            </button>
-          ))}
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setPagination(p => ({ ...p, page: p.page + 1 }))}
-          disabled={pagination.page >= Math.max(1, pagination.totalPages)}
-          className="px-5 py-2.5 rounded-xl border border-border text-base disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
-        >
-          Keyingi →
-        </button>
-      </div>
+      {pagination.totalPages > 1 && (
+        <PaginationBar
+          page={pagination.page}
+          totalPages={pagination.totalPages}
+          total={pagination.total}
+          limit={pagination.limit}
+          onPageChange={p => setPagination(prev => ({ ...prev, page: p }))}
+          className="mt-3 mb-3"
+        />
+      )}
 
       {showModal && (
         <ClientGroupModal
